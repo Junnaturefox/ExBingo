@@ -1,0 +1,5 @@
+# Keep the Gradle wrapper scripts usable on Linux/macOS runners.
+# gradlew must stay LF (a CRLF gradlew fails with ": not found" on bash),
+# gradlew.bat must stay CRLF for cmd.exe.
+gradlew text eol=lf
+gradlew.bat text eol=crlf

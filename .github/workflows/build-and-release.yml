@@ -1,0 +1,95 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build (NeoForge 1.21.1)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Read mod version
+        id: version
+        run: |
+          version=$(grep -E '^mod_version=' gradle.properties | cut -d= -f2 | tr -d '[:space:]')
+          if [ -z "$version" ]; then
+            echo "::error::Could not read mod_version from gradle.properties"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Building ExBingo $version"
+
+      - name: Verify tag matches mod_version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [ "$tag_version" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match mod_version=${{ steps.version.outputs.version }} in gradle.properties"
+            exit 1
+          fi
+
+      - name: Build
+        run: ./gradlew build
+
+      - name: Upload jar as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: exbingo-${{ steps.version.outputs.version }}
+          path: build/libs/*.jar
+          if-no-files-found: error
+
+      - name: Extract release notes from CHANGELOG
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          version = os.environ["VERSION"]
+          text = open("CHANGELOG.md", encoding="utf-8").read()
+          match = re.search(rf"^## {re.escape(version)}\b.*?(?=^——————|\Z)", text, re.S | re.M)
+          body = match.group(0).strip() if match else f"ExBingo {version}"
+          open("release-notes.md", "w", encoding="utf-8").write(body + "\n")
+          PY
+          cat release-notes.md
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          jar="build/libs/exbingo-${version}.jar"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists, updating assets and notes"
+            gh release upload "$GITHUB_REF_NAME" "$jar" --clobber
+            gh release edit "$GITHUB_REF_NAME" --title "ExBingo ${version}" --notes-file release-notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" "$jar" \
+              --title "ExBingo ${version}" \
+              --notes-file release-notes.md \
+              --verify-tag
+          fi
