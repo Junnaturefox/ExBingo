@@ -8,6 +8,7 @@ import net.minecraft.world.item.ItemStack
 import net.neoforged.neoforge.capabilities.EntityCapability
 import net.neoforged.neoforge.items.IItemHandler
 import net.neoforged.neoforge.items.IItemHandlerModifiable
+import org.slf4j.LoggerFactory
 
 /**
  * Curios integration backed by the NeoForge entity capability `curios:item_handler`.
@@ -31,6 +32,9 @@ class CuriosApi(
             )
     }
 
+    private val log = LoggerFactory.getLogger("ExBingo")
+    private var extractionFailureLogged = false
+
     override fun isInstalled(player: ServerPlayer): Boolean {
         return player.getCapability(CURIOS_INVENTORY, null) != null
     }
@@ -45,8 +49,20 @@ class CuriosApi(
 
             when (handler) {
                 is IItemHandlerModifiable -> handler.setStackInSlot(i, ItemStack.EMPTY)
-                // Fallback for non-modifiable handlers: drain the stack in place.
-                else -> stack.count = 0
+                // Curios' CurioItemHandler implements the read-only IItemHandler (it does NOT
+                // implement IItemHandlerModifiable), so setStackInSlot is unavailable there and
+                // mutating `stack.count` only leaves a zero-count stack behind instead of
+                // emptying the slot. extractItem is the writable path the handler supports.
+                else -> {
+                    val extracted = handler.extractItem(i, stack.count.coerceAtLeast(1), false)
+                    if (extracted.isEmpty && !stack.isEmpty && !extractionFailureLogged) {
+                        extractionFailureLogged = true
+                        log.warn(
+                            "[CuriosApi] Unable to clear curio slot {} of {} (handler {} does not support extraction)",
+                            i, player.scoreboardName, handler.javaClass.name,
+                        )
+                    }
+                }
             }
         }
     }
