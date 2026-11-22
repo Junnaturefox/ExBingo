@@ -30,6 +30,29 @@ Each release should include:
 
 ——————
 
+## 1.1.1 - 2026-11-22
+
+- Minecraft: 1.21.1
+- Mod Loader: NeoForge 21.1.234
+- License: LGPL-3.0-only
+- Release Type: Bug fix
+
+### 中文更新日志
+
+#### 调整内容
+
+- 移除针对 Enigmatic Legacy 的专属补丁（大厅自动清除开局遗物、写入遗物已发放标记、解除世界诅咒）。该逻辑原本只在检测到该模组时生效，未安装该模组的服务器行为完全不变。
+- 重新整理 README：明确只与 JEI、Simple Voice Chat、Xaero 的小地图、Curios 四个模组联动及其缺失时的降级行为；移除已删除的 Chunky、外部占位符、Vanish、权限模组等条目；补齐指令表与文档索引。
+
+### English Changelog
+
+#### Changed
+
+- Removed the Enigmatic Legacy specific patch (automatic removal of lobby starter relics, the relic-granted flags, and clearing the world curse flag). It only ran when that mod was detected, so servers without it behave exactly as before.
+- Reworked the README: it now states that only JEI, Simple Voice Chat, Xaero's Minimap, and Curios are integrated with — and how each degrades when missing — drops the removed Chunky / placeholder / Vanish / permissions entries, and includes a complete command table plus a documentation index.
+
+——————
+
 ## 1.1.0 - 2026-11-22
 
 - Minecraft: 1.21.1
