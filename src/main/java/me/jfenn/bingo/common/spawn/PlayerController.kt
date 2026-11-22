@@ -300,11 +300,8 @@ internal class PlayerController(
         // resetPlayerHealth so health/air are refilled against the restored (default) maximums.
         player.resetPlayerData()
 
-        // Revoke all advancements. The respawn path already does this, but the reset-to-lobby
-        // path did not — so mod progression gated on advancements survived a game. For example
-        // Eternal Starlight's Gatekeeper checks the `eternal_starlight:challenge_gatekeeper`
-        // advancement to decide whether a player may trade; without clearing it, a player who
-        // beat the challenge last game could trade immediately in the next one.
+        // Revoke all advancements so progression gated on them does not carry into the next round.
+        // The respawn path already did this; the reset-to-lobby path did not.
         advancementManager.clearAdvancements(player.player)
 
         resetPlayerHealth(player)

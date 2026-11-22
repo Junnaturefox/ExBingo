@@ -116,27 +116,6 @@ class PlayerHandle(
     private val itemStackFactory: IItemStackFactory? = null,
 ) : IPlayerHandle, LivingEntityImpl(player) {
 
-    private companion object {
-        // Data attachments holding permanent per-player progression that must be wiped when a
-        // game resets, so beating something one game doesn't grant it for free the next. Keyed
-        // by their registered id. Structural attachments (e.g. Curios' inventory) are
-        // deliberately excluded — clearing those breaks the owning mod.
-        //
-        // Eternal Starlight (`eternal_starlight`): the Gatekeeper trade permit is gated mainly
-        // by the `challenge_gatekeeper` advancement (cleared separately via clearAdvancements),
-        // but these attachments back other per-player progression and currencies.
-        val RESET_DATA_ATTACHMENT_IDS: List<ResourceLocation> = listOf(
-            "eternal_starlight:gatekeeper_challenge_count",
-            "eternal_starlight:owned_crests",
-            "eternal_starlight:crests",
-            "eternal_starlight:old_active_crests",
-            "eternal_starlight:boarwarf_credit",
-            "eternal_starlight:obtained_blossom_of_stars",
-            "eternal_starlight:received_guidebook",
-            "eternal_starlight:guidebook_listening_namespaces",
-        ).map { ResourceLocation.parse(it) }
-    }
-
     private fun getItemStackFactory(): IItemStackFactory = itemStackFactory
         // The scope is null when the player handle outlives the bingo scope (e.g. a handle created
         // for a global event); fail with a meaningful message instead of a bare !! NPE inside a mixin.
@@ -561,25 +540,6 @@ class PlayerHandle(
         val keptKeys = persistentData.allKeys.filter { it != Player.PERSISTED_NBT_TAG }
         for (key in keptKeys) {
             persistentData.remove(key)
-        }
-
-        // Clear specific modded data attachments that store permanent per-player progression,
-        // so finishing a game doesn't carry that progress into the next one. This is targeted
-        // (by attachment id) rather than wiping ALL attachments: a blanket clear also removes
-        // structural attachments other mods rely on (e.g. Curios' accessory inventory), which
-        // breaks them. Each removal is isolated so one failure can't skip the rest.
-        //
-        // NOTE: when adding per-mod Bingo board support, audit that mod for attachment-backed
-        // progression (boss permits, currencies, unlock flags) and add its ids here.
-        for (id in RESET_DATA_ATTACHMENT_IDS) {
-            try {
-                val type = NeoForgeRegistries.ATTACHMENT_TYPES.get(id) ?: continue
-                if (!player.hasData(type)) continue
-                player.removeData(type)
-                player.syncData(type)
-            } catch (e: Throwable) {
-                // A single mod's attachment misbehaving must not abort the whole reset.
-            }
         }
 
         // Clamp current health into the (possibly lowered) max after resetting attributes.

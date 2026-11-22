@@ -200,6 +200,34 @@ class MigrationHandler(
                 ?.deleteIfExists()
         }
 
+        migrations[33] = { // 1.0.10 - modded boards removed; only vanilla content ships now
+            // Delete the config copies of the tier lists that shipped with the per-mod boards. Only
+            // files the user never edited are touched (md5 must match the shipped content), so custom
+            // boards and user-modified copies are preserved.
+            // The hashes are of the serialized config copies (what the loader writes), not of the
+            // raw resource files.
+            val modBoardHashes = mapOf(
+                "cataclysm" to "6a3e9380df98ae11d3b805747f37f78d",
+                "eternal_starlight" to "9f1f71ffce9ddd71e187310482fc423f",
+                "farmersdelight" to "fa18ba6c80e12ac7571b928dedd5dffd",
+                "fdbosses" to "e15425fdb115c73f08b7d882a7ef1c1b",
+                "iceandfire" to "1457ee055153565ed89c71eeaf354bb5",
+                "irons_spellbooks" to "579e0a2903d3184a92f82bde6a4046aa",
+                "l2complements" to "7793cb13302c0e94f9bc9640769ed391",
+                "mowziesmobs" to "d1d7532b31e5f08f66edec665ca5f486",
+                "netherman" to "d11d942eec1100b19269fc83c943fc84",
+                "the_bumblezone" to "2d9c68428f6fcf4f7e844c60af6d1643",
+                "twilightforest" to "2938f1087dfdb5a4bf8bc4a5ebf3349b",
+                "undergarden" to "d67ef4ef625159cfaaef1de09d8b49d0",
+            )
+
+            for ((board, hash) in modBoardHashes) {
+                environment.configDir.resolve("$MOD_ID_BINGO/tierlists/$board${TierListLoader.FILE_SUFFIX}")
+                    .takeIfMd5(hash)
+                    ?.deleteIfExists()
+            }
+        }
+
         migrations[32] = { // 2.5.0
             // Move *.tierlist.json files from "{config}/" to "{config}/tierlists/"
             val targetPath = environment.configDir.resolve(TierListLoader.TIERLISTS_PATH)

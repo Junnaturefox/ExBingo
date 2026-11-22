@@ -118,20 +118,9 @@ data class BingoConfig(
     companion object {
         val DEFAULT_BOARD_SOURCE_WEIGHTS = linkedMapOf(
             "advancements" to 1.0,
-            "cataclysm" to 1.0,
             "challenge" to 1.0,
-            "eternal_starlight" to 1.0,
-            "farmersdelight" to 1.0,
-            "fdbosses" to 1.0,
-            "iceandfire" to 1.0,
-            "irons_spellbooks" to 1.0,
             "items" to 1.0,
-            "mowziesmobs" to 1.0,
-            "netherman" to 1.0,
             "simplified" to 1.0,
-            "the_bumblezone" to 1.0,
-            "twilightforest" to 1.0,
-            "undergarden" to 1.0,
             AutoTierConfig().tierListName to 1.0,
             ObjectiveFilter.UNCATEGORIZED to 1.0,
         )
