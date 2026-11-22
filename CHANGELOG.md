@@ -30,6 +30,55 @@ Each release should include:
 
 ——————
 
+## 1.1.0 - 2026-11-22
+
+- Minecraft: 1.21.1
+- Mod Loader: NeoForge 21.1.234
+- License: LGPL-3.0-only
+- Release Type: Feature update
+
+### 中文更新日志
+
+#### 调整内容
+
+- 移除全部与其他模组联动的棋盘（灾变、永恒星光、农夫乐事、逆卡巴拉：觉醒、冰火传说、Iron 的法术与魔法书、莱特兰扩充、Mowzie 的生物、蜜蜂领域、暮色森林、深暗之园等 12 个），以及冰火传说的专属目标定义。模组现在只内置 4 个原版棋盘：`items`、`in_overworld`、`advancements`、`simplified`。
+- 升级时会自动清理旧版本残留在 `config/exbingo/tierlists/` 下的模组棋盘文件；仅删除内容与发布版一致（即玩家未修改过）的文件，自建或改过的棋盘会保留。
+- 移除若干已无实现、长期不可用的联动桩代码：Chunky 预生成、外部占位符模组桥接、Vanish 兼容层、权限工厂跳转、Yet Another Config Lib 设置界面。相关功能在缺失时本来就未生效，移除后行为不变。
+- 重新整理 README 与「模组内容教程」，说明当前只含原版内容、以及如何通过自定义棋盘或过滤器重新引入其他模组的内容。
+
+#### 修复内容
+
+- 修复配置同步时的无限递归崩溃（`ModConfigEvent.Reloading` 重入导致 `StackOverflowError`）。
+- 修复配置文件损坏时被静默重置为默认值的问题，现在会先把损坏文件备份为 `.corrupt-<时间戳>`。
+- 修复对局结算时统计写入失败会阻塞状态迁移、导致对局永久停留在进行中的问题。
+- 修复计分板模板为空时的数组越界、统计与最佳用时 future 异常完成导致的菜单刷新中断。
+- 修复 `/bingodata tag|tierlist` 通配符批量增删时只有最后一项生效的问题。
+- 修复多连线计分模式下同一格被重复计分、菜单步进控件把时间限制一跳归零、多人最佳用时混入单人记录、队伍共享箱清理后旧界面点击越界等问题。
+- 修复客户端在断开连接后延迟发送的卡牌状态请求导致崩溃，以及 HUD 屏幕关闭时事件监听器泄漏。
+- 修复队伍申请入队界面中硬编码的中文文案，改为走语言文件（新增 14 个 `bingo.teamchest.spectator.*` 键）。
+
+### English Changelog
+
+#### Changed
+
+- Removed every board that targeted another mod (Cataclysm, Eternal Starlight, Farmer's Delight, Qliphoth Awakening, Ice and Fire, Iron's Spells 'n Spellbooks, L2Complements, Mowzie's Mobs, The Bumblezone, Twilight Forest, The Undergarden and others — 12 boards in total) along with Ice and Fire's dedicated objective definitions. The mod now ships only the four vanilla boards: `items`, `in_overworld`, `advancements`, `simplified`.
+- Upgrading cleans up the old mod board files left in `config/exbingo/tierlists/`; only files whose content still matches the shipped version (i.e. never edited) are deleted, so custom or modified boards are preserved.
+- Removed several integration stubs that had no implementation and never took effect: Chunky pre-generation, external placeholder-mod bridging, the Vanish compatibility layer, the permissions factory hop, and the Yet Another Config Lib settings screen. Behavior is unchanged because none of them were active.
+- Reworked the README and the mod-content tutorials to reflect the vanilla-only content and to explain how to bring other mods' content back through custom boards or filters.
+
+#### Fixed
+
+- Fixed a crash caused by infinite recursion while syncing the config (`ModConfigEvent.Reloading` re-entry leading to `StackOverflowError`).
+- Fixed a corrupt config file being silently replaced by defaults; it is now backed up to `.corrupt-<timestamp>` first.
+- Fixed a failed stats write blocking the end-of-game state transition, which left the round stuck in PLAYING forever.
+- Fixed an index-out-of-bounds on an empty scoreboard template, and menu refreshes aborting when a stats/best-time future completed exceptionally.
+- Fixed `/bingodata tag|tierlist` wildcard batch edits applying only the last entry.
+- Fixed duplicate scoring of shared cells in multi-line goal modes, the number-input widget jumping a time limit straight to zero, singleplayer best times leaking into the multiplayer record, and stale team chest menus throwing after a reset.
+- Fixed a client crash from delayed card-state requests sent after disconnecting, and an event-listener leak when the HUD screen closed.
+- Fixed hardcoded Chinese strings in the spectator team-join UI by moving them to the language files (14 new `bingo.teamchest.spectator.*` keys).
+
+——————
+
 ## 1.0.9 - 2026-11-22
 
 - Minecraft: 1.21.1

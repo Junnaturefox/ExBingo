@@ -76,23 +76,12 @@ import me.jfenn.bingo.common.text.PlaceholderService
 import me.jfenn.bingo.common.text.TextProvider
 import me.jfenn.bingo.common.timer.*
 import me.jfenn.bingo.common.utils.Build
-import me.jfenn.bingo.integrations.chunky.ChunkyController
-import me.jfenn.bingo.integrations.chunky.DummyChunky
-import me.jfenn.bingo.integrations.chunky.IChunkyApiFactory
 import me.jfenn.bingo.integrations.xaero.DummyXaeroMapApi
 import me.jfenn.bingo.integrations.xaero.IXaeroMapApi
 import me.jfenn.bingo.integrations.xaero.IXaeroMapApiFactory
 import me.jfenn.bingo.integrations.xaero.XaeroMapController
 import me.jfenn.bingo.integrations.permissions.FallbackPermissionsApi
 import me.jfenn.bingo.integrations.permissions.IPermissionsApi
-import me.jfenn.bingo.integrations.permissions.IPermissionsApiFactory
-import me.jfenn.bingo.integrations.placeholders.DummyPlaceholders
-import me.jfenn.bingo.integrations.placeholders.ITextPlaceholdersApi
-import me.jfenn.bingo.integrations.placeholders.ITextPlaceholdersApiFactory
-import me.jfenn.bingo.integrations.placeholders.PlaceholdersIntegration
-import me.jfenn.bingo.integrations.vanish.DummyVanish
-import me.jfenn.bingo.integrations.vanish.IVanishApi
-import me.jfenn.bingo.integrations.vanish.IVanishApiFactory
 import me.jfenn.bingo.integrations.curios.CuriosApi
 import me.jfenn.bingo.integrations.curios.ICuriosApi
 import me.jfenn.bingo.integrations.voice.DummyVoiceApi
@@ -172,24 +161,8 @@ val commonModule = module {
     singleOf(::StatsService)
     singleOf(::PlayerSettingsService)
 
-    single<ITextPlaceholdersApi> {
-        ServiceLoader.load(ITextPlaceholdersApiFactory::class.java)
-            .firstNotNullOfOrNull { it.create(get()) }
-            ?: DummyPlaceholders
-    }
-    singleOf(::PlaceholdersIntegration)
-
-    single<IChunkyApiFactory> {
-        ServiceLoader.load(IChunkyApiFactory::class.java).findFirst()
-            .getOrNull()
-            ?: DummyChunky.Factory
-    }
-
-    single<IPermissionsApi> {
-        ServiceLoader.load(IPermissionsApiFactory::class.java)
-            .firstNotNullOfOrNull { it.create(get()) }
-            ?: FallbackPermissionsApi()
-    }
+    // Permission nodes resolve against vanilla operator levels; no permissions mod is required.
+    single<IPermissionsApi> { FallbackPermissionsApi() }
 
     single<IVoiceApi> {
         ServiceLoader.load(IVoiceApiFactory::class.java)
@@ -379,16 +352,7 @@ val commonModule = module {
 
         scopedOf(::CommandTreeHandler)
 
-        scoped<IVanishApi> {
-            ServiceLoader.load(IVanishApiFactory::class.java)
-                .firstNotNullOfOrNull { it.create(this) }
-                ?: DummyVanish
-        }
-
         scoped<ICuriosApi> { CuriosApi(get()) }
-
-        scoped { get<IChunkyApiFactory>().create(this) }
-        scopedOf(::ChunkyController)
 
         scopedOf(::XaeroMapController)
 
@@ -440,8 +404,6 @@ fun Koin.commonInit() {
 
     get<ConnectionFactory>()
     get<StatsService>()
-
-    get<PlaceholdersIntegration>()
 }
 
 fun Scope.commonInit() {
@@ -495,7 +457,6 @@ fun Scope.commonInit() {
     get<ChestController>()
     get<SpawnPreloadingController>()
 
-    get<ChunkyController>()
     get<XaeroMapController>()
     get<VoiceGroupController>()
 

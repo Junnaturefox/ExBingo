@@ -12,7 +12,6 @@ import me.jfenn.bingo.common.scope.BingoComponent
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.common.team.TeamService
-import me.jfenn.bingo.integrations.vanish.IVanishApi
 import me.jfenn.bingo.integrations.curios.ICuriosApi
 import me.jfenn.bingo.platform.*
 import me.jfenn.bingo.platform.event.IEventBus
@@ -31,7 +30,7 @@ import org.slf4j.Logger
  * Ensures that players are put in their correct gamemode on certain events:
  * - in pre-game -> ADVENTURE
  * - when the game starts -> SURVIVAL & clear inventory
- * - if spectating -> SPECTATOR (or ADVENTURE + flying, if using the vanish integration)
+ * - if spectating -> SPECTATOR
  * - in post-game -> CREATIVE
  *
  * Needs to additionally ensure that the state is re-applied on
@@ -52,7 +51,6 @@ internal class PlayerController(
     private val elytraService: ElytraService,
     private val advancementManager: IAdvancementManager,
     private val recipeManager: IRecipeManager,
-    private val vanishApi: IVanishApi,
     private val curiosApi: ICuriosApi,
     private val playerManager: IPlayerManager,
     private val serverTaskExecutor: IExecutors.IServerTaskExecutor,
@@ -160,18 +158,6 @@ internal class PlayerController(
         }
     }
 
-    private fun updateVanishStatus(
-        player: IPlayerHandle
-    ): Boolean {
-        val team = teamService.getPlayerTeam(player)
-        val isOnActiveTeam = team?.isPlaying() == true
-
-        // if the player is not on a team, they should be vanished
-        val isVanished = !isOnActiveTeam && (state.state == GameState.LOADING || state.state == GameState.COUNTDOWN || state.state == GameState.PLAYING)
-        vanishApi.setVanish(player, isVanished)
-        return isVanished
-    }
-
     fun updateGameMode(
         player: IPlayerHandle,
         forceReset: Boolean = false,
@@ -206,7 +192,6 @@ internal class PlayerController(
                     GameState.PLAYING -> PlayerGameMode.SURVIVAL
                     else -> PlayerGameMode.ADVENTURE
                 }
-                !cardViewService.supportsCardHud(player) && vanishApi.isInstalled() -> PlayerGameMode.ADVENTURE
                 else -> PlayerGameMode.SPECTATOR
             }
             GameState.POSTGAME -> when {
@@ -278,12 +263,6 @@ internal class PlayerController(
             player.gameMode = gameMode
         }
 
-        val isVanished = updateVanishStatus(player)
-        // allow players in adventure mode to fly
-        if (isVanished && vanishApi.isInstalled()) {
-            player.abilities.allowFlying = true
-            player.sendAbilitiesUpdate()
-        }
 
         enforceEnigmaticLegacyLobbyStarterRelics(player)
     }
@@ -328,7 +307,6 @@ internal class PlayerController(
 
         player.abilities.allowFlying = false
         player.sendAbilitiesUpdate()
-        updateVanishStatus(player)
         enforceEnigmaticLegacyLobbyStarterRelics(player, syncInventory = false)
         player.resyncClientState(syncPosition = true)
     }
@@ -429,10 +407,6 @@ internal class PlayerController(
     }
 
     init {
-        events.onPlayerInit { (player) ->
-            // update vanish status on init, so that players are hidden before the login message
-            updateVanishStatus(player)
-        }
 
         events.onPlayerJoin { (player) ->
             val lobbyWorld = serverWorldFactory.listWorlds()

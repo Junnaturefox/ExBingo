@@ -8,7 +8,6 @@ import me.jfenn.bingo.client.common.packet.ClientPacketEvents
 import me.jfenn.bingo.client.common.state.BingoHudState
 import me.jfenn.bingo.client.common.state.ClientCard
 import me.jfenn.bingo.client.common.utils.Interpolate
-import me.jfenn.bingo.client.integrations.YetAnotherConfigLibIntegration
 import me.jfenn.bingo.client.integrations.jei.IJeiApi
 import me.jfenn.bingo.client.platform.IClient
 import me.jfenn.bingo.client.platform.IScrollableWidgetFactory
@@ -53,7 +52,6 @@ internal class BingoHudScreen(
 ) : IScreen {
 
     private val jei by koin.inject<IJeiApi>()
-    private val yacl by koin.inject<YetAnotherConfigLibIntegration>()
 
     class Factory(
         private val koin: Koin,
@@ -145,18 +143,6 @@ internal class BingoHudScreen(
     private val fireworkRenderer = BingoEndFireworkRenderer(text)
         .takeIf { gameOver != null && gameOver.isFirstOpen && gameOver.packet.isWinner }
         ?.also { gameOver?.isFirstOpen = false }
-
-    private val settingsButton = buttonFactory.createNinePatchButton(
-        sliceSize = 8,
-        textureSize = Vector2i(200, 20),
-        texture = "minecraft:bingo/button_game_generic",
-        focusedTexture = "minecraft:bingo/button_game_generic_focused"
-    ).also {
-        it.message = text.string(StringKey.CardSettingsButton)
-        it.onClick {
-            client.screen = yacl.buildConfigScreen(helper.screen)
-        }
-    }.takeIf { yacl.isInstalled() }
 
     private val closeButton = buttonFactory.createNinePatchButton(
         sliceSize = 8,
@@ -286,16 +272,10 @@ internal class BingoHudScreen(
         val marginX = 12
         val marginY = 4
 
-        val closeButtonSize = when {
-            settingsButton != null -> (sidebarWidth - marginX * 2) / 2 - 1
-            else -> sidebarWidth - marginX * 2
-        }
+        val closeButtonSize = sidebarWidth - marginX * 2
         closeButton.size = Vector2i(closeButtonSize, 20)
         var buttonY = height - closeButton.size.y - 12
         closeButton.position = Vector2i(width - interpolatedSidebarWidth + marginX, buttonY)
-
-        settingsButton?.size = Vector2i(closeButtonSize, 20)
-        settingsButton?.position = Vector2i(width - interpolatedSidebarWidth + marginX + closeButtonSize + 2, buttonY)
 
         if (gameOver != null) {
             if (gameOver.packet.isResumeAvailable) {
@@ -334,9 +314,6 @@ internal class BingoHudScreen(
 
         helper.addButton(closeButton)
 
-        if (settingsButton != null) {
-            helper.addButton(settingsButton)
-        }
 
         if (gameOver != null) {
             if (gameOver.packet.isResumeAvailable) {

@@ -4,7 +4,6 @@ import me.jfenn.bingo.common.Permission
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.common.team.TeamService
-import me.jfenn.bingo.integrations.vanish.IVanishApi
 import me.jfenn.bingo.platform.IPlayerHandle
 import me.jfenn.bingo.platform.commands.ICommandManager
 import net.minecraft.world.level.GameType
@@ -37,12 +36,8 @@ class SpectatorCommand(
         // Switch between adventure and spectator modes
         commandManager.register("spectator") {
             requires {
-                val isGameState = when {
-                    // If vanish is installed, allow when spectating a game
-                    scope.get<IVanishApi>().isInstalled() -> hasState(GameState.PLAYING, GameState.POSTGAME)
-                    // Otherwise, only allow in postgame
-                    else -> hasState(GameState.POSTGAME)
-                }
+                // Only offered in postgame
+                val isGameState = hasState(GameState.POSTGAME)
                 val isPermission = hasPermission(Permission.COMMAND_SPECTATOR)
 
                 val state = scope.get<BingoState>()

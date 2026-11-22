@@ -25,7 +25,6 @@ import me.jfenn.bingo.client.common.world.BingoWorldManager
 import me.jfenn.bingo.client.integrations.JeiIntegration
 import me.jfenn.bingo.client.integrations.CompassHudCompat
 import me.jfenn.bingo.client.integrations.SimpleVoiceChatHudCompat
-import me.jfenn.bingo.client.integrations.YetAnotherConfigLibIntegration
 import me.jfenn.bingo.client.integrations.jei.IJeiApi
 import me.jfenn.bingo.client.integrations.jei.IJeiApiFactory
 import me.jfenn.bingo.client.integrations.xaero.XaeroCacheCleanupState
@@ -74,7 +73,6 @@ val commonClientModule = module {
 
     singleOf(::ClientSettingsService)
     singleOf(::ClientSettingsController) withOptions { createdAtStart() }
-    factoryOf(YetAnotherConfigLibIntegration::create)
 
     single {
         JeiIntegration(
