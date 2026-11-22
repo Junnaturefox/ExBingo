@@ -78,9 +78,10 @@ OP 可以关闭不想用的棋盘：
 | `/bingo start`、`/bingo start ignore_warnings` | 开始对局（`ignore_warnings` 跳过数据包推荐人数等警告） |
 | `/bingo end` | 结束当前对局（仅对局进行中可用） |
 | `/bingo reset` | 重置对局与大厅状态（对局中或结算后可用） |
-| `/bingo goal <数量> <items\|lines>`、`/bingo goal full_card` | 胜利目标 |
-| `/bingo timelimit <分钟>` | 对局时限 |
-| `/bingo options mode <lockout\|inventory\|hidden_items\|consume_items>` | 对局模式 |
+| `/bingo goal <数量> <items\|lines>`、`/bingo goal full_card <items\|lines>` | 胜利目标 |
+| `/bingo difficulty <S> <A> <B> <C> <D>`、`/bingo difficulty <预设名>` | 五个难度档位的格子数，或直接套用难度预设 |
+| `/bingo timelimit <分钟>`、`/bingo timelimit off` | 对局时限 |
+| `/bingo mode <lockout\|inventory\|hidden_items\|consume_items>` | 对局模式 |
 | `/bingo options stalemate <end_game\|reroll_card\|do_nothing>` | 僵局处理 |
 | `/bingo options end_when <never\|first_win\|teams_win\|all_win>` | 结束条件 |
 | `/bingo options pvp [enabled]`、`elytra [enabled]`、`night_vision [enabled]` | 开关类规则 |
@@ -88,6 +89,13 @@ OP 可以关闭不想用的棋盘：
 | `/bingo options play_to <分数>`、`play_to cards <数量>`、`play_to infinite_cards`、`play_to replace_goals` | 卡牌数量与进度规则 |
 | `/bingo options preview_card` | 预览棋盘 |
 | `/bingo card`、`/bingo cards`、`/bingo card <id>` | 查看棋盘 |
+| `/bingo card set <格子> <目标>`、`... random`、`... free_space` | 逐格改目标（`b1`/`i3`/`o5` 坐标） |
+| `/bingo card seed [种子]`、`/bingo card stack [push\|pop]`、`/bingo card assign <队伍> <棋盘>` | 种子、多棋盘队列与分配 |
+| `/bingo reroll` | 重随当前棋盘 |
+| `/bingo book` | 获取教程书 |
+| `/bingo resume` | 恢复可继续的对局 |
+| `/bingo shuffleteams <队伍数>` | 赛前随机分队 |
+| `/bingo lobby [confirm]` | 切换到大厅模式（需确认） |
 | `/bingo carddisable` / `/bingo cardenable` | 关闭 / 启用棋盘 |
 | `/bingo filter [表达式]` | 按标签/条件过滤目标 |
 | `/bingo autotier generate` / `clear` | 为未分类内容自动分级 |
@@ -224,9 +232,10 @@ Commands use permission nodes (e.g. `bingo.command.reset`) whose defaults are `A
 | `/bingo start`, `/bingo start ignore_warnings` | Start a round (`ignore_warnings` skips datapack player-count warnings) |
 | `/bingo end` | End the current round (only while a round is running) |
 | `/bingo reset` | Reset the round and lobby state (while playing or after the results) |
-| `/bingo goal <count> <items\|lines>`, `/bingo goal full_card` | Win goal |
-| `/bingo timelimit <minutes>` | Round time limit |
-| `/bingo options mode <lockout\|inventory\|hidden_items\|consume_items>` | Game mode |
+| `/bingo goal <count> <items\|lines>`, `/bingo goal full_card <items\|lines>` | Win goal |
+| `/bingo difficulty <S> <A> <B> <C> <D>`, `/bingo difficulty <preset>` | Tier counts per difficulty, or apply a difficulty preset |
+| `/bingo timelimit <minutes>`, `/bingo timelimit off` | Round time limit |
+| `/bingo mode <lockout\|inventory\|hidden_items\|consume_items>` | Game mode |
 | `/bingo options stalemate <end_game\|reroll_card\|do_nothing>` | Stalemate behavior |
 | `/bingo options end_when <never\|first_win\|teams_win\|all_win>` | End conditions |
 | `/bingo options pvp [enabled]`, `elytra [enabled]`, `night_vision [enabled]` | Toggle rules |
@@ -234,6 +243,13 @@ Commands use permission nodes (e.g. `bingo.command.reset`) whose defaults are `A
 | `/bingo options play_to <score>`, `play_to cards <count>`, `play_to infinite_cards`, `play_to replace_goals` | Card count and progress rules |
 | `/bingo options preview_card` | Preview the card |
 | `/bingo card`, `/bingo cards`, `/bingo card <id>` | Inspect the card |
+| `/bingo card set <tile> <objective>`, `... random`, `... free_space` | Set a single tile (`b1`/`i3`/`o5`) |
+| `/bingo card seed [seed]`, `/bingo card stack [push\|pop]`, `/bingo card assign <team> <card>` | Seed, card queue, and assignment |
+| `/bingo reroll` | Reroll the current card |
+| `/bingo book` | Get the tutorial book |
+| `/bingo resume` | Resume a resumable round |
+| `/bingo shuffleteams <count>` | Randomly split teams before the round |
+| `/bingo lobby [confirm]` | Switch to lobby mode (with confirmation) |
 | `/bingo carddisable` / `/bingo cardenable` | Disable / enable a board |
 | `/bingo filter [expression]` | Filter objectives by tags/conditions |
 | `/bingo autotier generate` / `clear` | Auto-tier uncategorized content |
