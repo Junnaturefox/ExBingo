@@ -30,7 +30,7 @@ Each release should include:
 
 ——————
 
-## 1.0.8 - 2026-11-22
+## 1.0.9 - 2026-11-22
 
 - Minecraft: 1.21.1
 - Mod Loader: NeoForge 21.1.234
