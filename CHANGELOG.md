@@ -30,6 +30,35 @@ Each release should include:
 
 ——————
 
+## 1.1.2 - 2026-11-23
+
+- Minecraft: 1.21.1
+- Mod Loader: NeoForge 21.1.234
+- License: LGPL-3.0-only
+- Release Type: Bug fix
+
+### 中文更新日志
+
+#### 修复内容
+
+- 修复安装 Curios 时「对局重置清空饰品栏」实际不生效的问题。Curios 的饰品容器只对外提供只读物品处理器，原实现会退化成把物品数量置零，槽位里留下一个数量为 0 的物品而不是被腾空。现在改为提取整个槽位来清空，并在提取失败时记录一次警告。
+
+#### 调整内容
+
+- 重新核对 JEI、Simple Voice Chat、Xaero 的小地图、Curios 四个联动在 Minecraft 1.21.1 下的可用性（注解发现机制、API 签名、capability 标识、发包路径），除上述 Curios 问题外均无需改动。
+
+### English Changelog
+
+#### Fixed
+
+- Fixed accessory slots never actually being cleared on game reset when Curios is installed. Curios exposes its accessory inventory through a read-only item handler, so the previous implementation fell back to zeroing the stack count — leaving a zero-count item in the slot instead of emptying it. Slots are now emptied by extracting them, with a single warning logged if extraction fails.
+
+#### Changed
+
+- Re-verified that the JEI, Simple Voice Chat, Xaero's Minimap and Curios integrations all still work on Minecraft 1.21.1 (annotation-based plugin discovery, API signatures, capability identity, packet path). Nothing else needed changing.
+
+——————
+
 ## 1.1.1 - 2026-11-22
 
 - Minecraft: 1.21.1
