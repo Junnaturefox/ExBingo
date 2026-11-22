@@ -30,6 +30,29 @@ Each release should include:
 
 ——————
 
+## 1.0.8 - 2026-11-22
+
+- Minecraft: 1.21.1
+- Mod Loader: NeoForge 21.1.234
+- License: LGPL-3.0-only
+- Release Type: Bug fix
+
+### 中文更新日志
+
+#### 修复内容
+
+- 修复启动、`/reload` 或修改配置后崩溃的问题。ExBingo 在把 `config/exbingo/config.json` 同步到 NeoForge 配置时会再次触发配置重载事件，形成无限递归并抛出 `StackOverflowError`；部分环境（例如移动端启动器）随后在渲染崩溃界面时再次失败，表现为游戏直接闪退。现在同步过程中由自身写入引发的重复重载会被忽略。
+- 配置同步只在数值实际发生变化时才写回 `exbingo-common.toml`，不再在每次重载时重写配置文件。
+
+### English Changelog
+
+#### Fixed
+
+- Fixed a crash on startup, on `/reload`, or after editing the config. While syncing `config/exbingo/config.json` into the NeoForge config, ExBingo re-triggered the config reload event, causing unbounded recursion and a `StackOverflowError`; on some setups (for example mobile launchers) a second failure while rendering the crash screen made the game close instantly. Reload events raised by ExBingo's own write are now ignored.
+- Config sync now writes `exbingo-common.toml` only when values actually changed, instead of rewriting the file on every reload.
+
+——————
+
 ## 1.0.6 - 2026-07-16
 
 - Minecraft: 1.21.1

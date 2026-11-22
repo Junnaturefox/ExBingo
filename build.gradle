@@ -173,6 +173,21 @@ dependencies {
     jarJar "app.cash.sqldelight:jdbc-driver:${sqldelight_version}"
     jarJar "app.cash.sqldelight:runtime-jvm:${sqldelight_version}"
     jarJar 'org.xerial:sqlite-jdbc:3.50.3.0'
+
+    // Plain Java libraries are not loaded into dev runs on Minecraft 1.21.8 and older unless they are
+    // also declared on `additionalRuntimeClasspath` (they carry no neoforge.mods.toml / FMLModType).
+    // Without these, runClient/runServer die with ClassNotFoundException from mixins that reference them
+    // (e.g. org.koin.core.scope.Scope). ModDevGradle README -> "External Dependencies: Runs".
+    additionalRuntimeClasspath "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
+    additionalRuntimeClasspath "org.jetbrains.kotlin:kotlin-reflect:${kotlin_version}"
+    additionalRuntimeClasspath "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:${kotlinx_serialization_version}"
+    additionalRuntimeClasspath "org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:${kotlinx_serialization_version}"
+    additionalRuntimeClasspath "io.insert-koin:koin-core-jvm:${koin_version}"
+    additionalRuntimeClasspath "io.insert-koin:koin-logger-slf4j:${koin_version}"
+    additionalRuntimeClasspath 'com.zaxxer:HikariCP:7.0.2'
+    additionalRuntimeClasspath "app.cash.sqldelight:jdbc-driver:${sqldelight_version}"
+    additionalRuntimeClasspath "app.cash.sqldelight:runtime-jvm:${sqldelight_version}"
+    additionalRuntimeClasspath 'org.xerial:sqlite-jdbc:3.50.3.0'
 }
 
 tasks.register('exbingoImages', Copy) {

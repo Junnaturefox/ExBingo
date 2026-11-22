@@ -34,6 +34,18 @@ object NeoForgeConfigBridge {
     @Volatile
     private var startupConfigLoadComplete = false
 
+    /**
+     * Set while we are writing to the NeoForge config specs.
+     *
+     * [ModConfigSpec.save] re-dispatches [ModConfigEvent.Reloading] synchronously on the calling
+     * thread (LoadedConfig#save -> ModContainer#acceptEvent -> EventBus#post), so a save triggered
+     * from [onConfigEvent] re-enters [onConfigEvent] -> syncReloadedSpec -> save -> ... until the
+     * stack overflows (crash: StackOverflowError in NeoForgeConfigBridge.onConfigEvent, which then
+     * cascades into ExceptionInInitializerError while FML builds the crash report).
+     * Reloading events fired by our own save are already in sync, so they are ignored.
+     */
+    private val configSyncInProgress: java.lang.ThreadLocal<Boolean> = java.lang.ThreadLocal.withInitial { false }
+
     private val commonPair = ModConfigSpec.Builder().configure(::CommonValues)
     private val clientPair = ModConfigSpec.Builder().configure(::ClientValues)
 
@@ -98,13 +110,23 @@ object NeoForgeConfigBridge {
             return
         }
 
-        runCatching {
-            when (event) {
-                is ModConfigEvent.Loading -> syncInitialLoadedSpec(FMLPaths.CONFIGDIR.get(), scope)
-                is ModConfigEvent.Reloading -> syncReloadedSpec(FMLPaths.CONFIGDIR.get(), scope)
+        if (configSyncInProgress.get()) {
+            // Nested Reloading raised by our own ModConfigSpec#save(); the values are already synced.
+            return
+        }
+
+        configSyncInProgress.set(true)
+        try {
+            runCatching {
+                when (event) {
+                    is ModConfigEvent.Loading -> syncInitialLoadedSpec(FMLPaths.CONFIGDIR.get(), scope)
+                    is ModConfigEvent.Reloading -> syncReloadedSpec(FMLPaths.CONFIGDIR.get(), scope)
+                }
+            }.onFailure {
+                log.error("Unable to sync ExBingo NeoForge config values with config/exbingo/config.json", it)
             }
-        }.onFailure {
-            log.error("Unable to sync ExBingo NeoForge config values with config/exbingo/config.json", it)
+        } finally {
+            configSyncInProgress.set(false)
         }
     }
 
@@ -133,11 +155,17 @@ object NeoForgeConfigBridge {
             saveClient = true
         }
 
-        if (saveCommon) {
-            commonSpec.save()
-        }
-        if (saveClient) {
-            clientSpec.save()
+        if (saveCommon || saveClient) {
+            // save() re-dispatches ModConfigEvent.Reloading; hold the guard so writing config.json
+            // cannot feed itself back through onConfigEvent -> syncReloadedSpec -> save.
+            val alreadySyncing = configSyncInProgress.get()
+            if (!alreadySyncing) configSyncInProgress.set(true)
+            try {
+                if (saveCommon) commonSpec.save()
+                if (saveClient) clientSpec.save()
+            } finally {
+                if (!alreadySyncing) configSyncInProgress.set(false)
+            }
         }
     }
 
@@ -181,9 +209,18 @@ object NeoForgeConfigBridge {
     private fun syncJsonToLoadedSpec(configDir: Path, scope: ConfigScope) {
         val current = readLegacyConfig(configDir)
         ExperienceBottleXpHelper.updateFrom(current)
+        val before = snapshotLoadedSpec(scope)
         setLoadedSpecFrom(current, scope)
-        saveLoadedSpec(scope)
+        val after = snapshotLoadedSpec(scope)
+        // Persist only when the spec really changed: save() both rewrites the TOML file and
+        // re-dispatches Reloading, so an unconditional save would churn on every reload.
+        if (before == null || after == null || before != after) {
+            saveLoadedSpec(scope)
+        }
     }
+
+    private fun snapshotLoadedSpec(scope: ConfigScope): BingoConfig? =
+        runCatching { applyLoadedSpec(BingoConfig(), scope) }.getOrNull()
 
     private fun defaultConfig(): BingoConfig =
         runCatching { readLegacyConfig(FMLPaths.CONFIGDIR.get()) }
