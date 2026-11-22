@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
@@ -52,30 +52,7 @@ jobs:
           fi
 
       - name: Build
-        run: |
-          set -o pipefail
-          ./gradlew build --stacktrace 2>&1 | tee build.log
-
-      - name: Report build failure
-        if: failure()
-        run: |
-          {
-            echo "### Environment"
-            uname -a
-            java -version 2>&1
-            echo "### Failure"
-            grep -nE "^(FAILURE|\* What went wrong|> Task .* FAILED|e: |error:|Caused by:)" -A4 build.log | head -120 || true
-            echo "### Tail"
-            tail -60 build.log || true
-          } > diag.txt
-          python3 - <<'PY'
-          import json
-          text = open("diag.txt", encoding="utf-8", errors="replace").read()
-          text = text[:60000]
-          # GitHub caps a single annotation message; keep it readable but complete-ish.
-          msg = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
-          print(f"::error title=Gradle build failed::{msg}")
-          PY
+        run: ./gradlew build
 
       - name: Upload jar as workflow artifact
         uses: actions/upload-artifact@v4

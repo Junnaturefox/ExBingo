@@ -81,8 +81,12 @@ sourceSets {
         }
     }
     test {
-        compileClasspath += files(layout.buildDirectory.file("moddev/artifacts/neoforge-${neo_version}-merged.jar"))
-        runtimeClasspath += files(layout.buildDirectory.file("moddev/artifacts/neoforge-${neo_version}-merged.jar"))
+        // Tests compile and run against the same Minecraft/NeoForge classpath as the mod itself.
+        // Do NOT hardcode build/moddev/artifacts/neoforge-<ver>-merged.jar here: that file only exists
+        // when ModDevGradle runs the NeoForm decompile + recompile pipeline. CI environments set the CI
+        // env var, which makes ModDevGradle skip recompilation, so the path does not exist there and
+        // compileTestKotlin fails with "Unresolved reference: net".
+        compileClasspath += sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.runtimeClasspath
     }
 }
@@ -303,7 +307,6 @@ tasks.withType(JavaCompile).configureEach {
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
     dependsOn(tasks.named('createMinecraftArtifacts'))
-    classpath += files(layout.buildDirectory.file("moddev/artifacts/neoforge-${neo_version}-merged.jar"))
 }
 
 tasks.named('compileTestKotlin').configure {
