@@ -212,8 +212,10 @@ internal class GameService(
         state.gameOverInfo = info
         state.endedAt = endedAt
 
-        // Then, write the game to stats.db
-        writeStatsService.writeGame()
+        // Then, write the game to stats.db. A broken/unavailable stats database must not block the
+        // state transition below - otherwise the round would be stuck in PLAYING forever.
+        runCatching { writeStatsService.writeGame() }
+            .onFailure { log.error("[GameService] Unable to write game stats", it) }
 
         // Finally, change state to POSTGAME (announces in GameOverController)
         state.changeState(eventBus, GameState.POSTGAME)

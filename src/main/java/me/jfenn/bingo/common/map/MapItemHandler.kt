@@ -74,7 +74,6 @@ internal class MapItemHandler(
 
             // if the item *can* be used, and *isn't* a bingo map, it should prevent the bingo map from being used
             if (usedBingoMap.contains(player.uuid) && event.player.canUseItem(itemStack)) {
-                // println("Removing; item used ($hand, with ${itemStack.translationKey})")
                 usedBingoMap.remove(player.uuid)
             }
 
@@ -92,7 +91,6 @@ internal class MapItemHandler(
                 && !mapItemService.isMapItem(itemStack)
                 && !itemStack.isEmpty
             ) {
-                // println("Removing; block used ($hand, with ${itemStack.translationKey})")
                 usedBingoMap.remove(player.uuid)
             }
 
@@ -110,7 +108,6 @@ internal class MapItemHandler(
                 && !mapItemService.isMapItem(itemStack)
                 && !itemStack.isEmpty
             ) {
-                // println("Removing; entity used")
                 usedBingoMap.remove(player.uuid)
             }
 

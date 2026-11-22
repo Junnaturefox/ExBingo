@@ -49,7 +49,10 @@ internal fun MenuComponent.registerPlayerCount(
         position = position + Vector3d(0.0, -offsetY - MENU_LINE_HEIGHT, 0.0),
         width = width,
         titleProp = computedProperty {
-            val bestTime = statsFuture.getNow(null)
+            // getNow() throws when the future completed exceptionally (StatsService uses
+            // orTimeout), and this getter runs while the menu spawns - a throw here aborted the
+            // whole menu spawn on every tick.
+            val bestTime = runCatching { statsFuture.getNow(null) }.getOrNull()
                 ?.formatHHMMSS()
                 ?.let { text.from(Component.literal(it).withStyle(ChatFormatting.GREEN)) }
                 ?: text.string(StringKey.StatsBestTimeNotSet).formatted(ChatFormatting.GRAY)

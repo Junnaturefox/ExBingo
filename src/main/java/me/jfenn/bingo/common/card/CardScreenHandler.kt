@@ -30,11 +30,7 @@ class CardScreenHandler(
                 val x = 8 + col * 18
                 val y = 18 + row * 18
 
-                if (col in 2 until 7) {
-                    this.addSlot(EmptySlot(inventory, index, x, y))
-                } else {
-                    this.addSlot(EmptySlot(inventory, index, x, y))
-                }
+                this.addSlot(EmptySlot(inventory, index, x, y))
             }
         }
 

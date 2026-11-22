@@ -253,8 +253,12 @@ internal class ScoreboardController(
                                 add(line)
                             }
                         }
-                        val emptyLines = reducedLines.reversed().indexOfFirst { it.toString().isNotEmpty() }
-                        reducedLines.subList(0, reducedLines.size - emptyLines)
+                        // Drop the trailing blank lines; when every line is blank indexOfFirst is -1,
+                        // so fall back to dropping all of them (dropLast is bounds-safe, subList is not).
+                        val trailingEmptyLines = reducedLines.reversed()
+                            .indexOfFirst { it.toString().isNotEmpty() }
+                            .let { if (it < 0) reducedLines.size else it }
+                        reducedLines.dropLast(trailingEmptyLines)
                     }
                     .mapIndexed { index, line ->
                         if (line.toString().isEmpty()) text.literal(" ".repeat(index)) else line

@@ -1,4 +1,4 @@
-﻿package me.jfenn.bingo.common.teamchest
+package me.jfenn.bingo.common.teamchest
 
 import me.jfenn.bingo.common.data.ScopedData
 import me.jfenn.bingo.common.event.ScopedEvents
@@ -104,7 +104,7 @@ internal class SpectatorTeamJoinService(
                         teamKeys = teamKeys(),
                     )
                 },
-                serverText("选择队伍").value,
+                text.string(StringKey.TeamchestSpectatorTitle).value,
             )
         )
         return true
@@ -155,9 +155,9 @@ internal class SpectatorTeamJoinService(
 
     private fun createTeamStack(team: BingoTeam, count: Int): ItemStack {
         val stack = ItemStack(woolItem(team.textColor))
-        val teamName = serverTeamName(team, bracketed = false).formatted(team.textColor)
-        val countText = serverText("当前人数：$count").formatted(team.textColor)
-        val hint = serverText("点击后申请加入队伍").formatted(team.textColor)
+        val teamName = team.getName(text, bracketed = false).formatted(team.textColor)
+        val countText = text.string(StringKey.TeamchestSpectatorOnlineCount, count).formatted(team.textColor)
+        val hint = text.string(StringKey.TeamchestSpectatorClickToJoin).formatted(team.textColor)
 
         stack[DataComponents.CUSTOM_NAME] = teamName.value
         stack[DataComponents.LORE] = ItemLore(listOf(countText.value, hint.value))
@@ -190,21 +190,21 @@ internal class SpectatorTeamJoinService(
         )
 
         if (!canUseSelection(requester)) {
-            requester.sendMessage(serverText("只有在对局进行中且为旁观者时才能申请加入队伍。").formatted(ChatFormatting.RED))
+            requester.sendMessage(text.string(StringKey.TeamchestSpectatorErrorSpectatorOnly).formatted(ChatFormatting.RED))
             requester.player.closeContainer()
             return
         }
 
         val team = getTeamTemplate(teamKey)
         if (team == null) {
-            requester.sendMessage(serverText("该队伍已经不存在，请重新打开队伍选择。").formatted(ChatFormatting.RED))
+            requester.sendMessage(text.string(StringKey.TeamchestSpectatorErrorTeamMissing).formatted(ChatFormatting.RED))
             requester.player.closeContainer()
             return
         }
 
         val teamPlayers = onlineTeamPlayers(teamKey)
         if (teamPlayers.isEmpty()) {
-            requester.sendMessage(serverText("正在加入").append(serverTeamName(team)).append("……").formatted(ChatFormatting.YELLOW))
+            requester.sendMessage(text.string(StringKey.TeamchestSpectatorJoining, serverTeamName(team)).formatted(ChatFormatting.YELLOW))
             joinApprovedTeam(requester, team)
             return
         }
@@ -216,26 +216,26 @@ internal class SpectatorTeamJoinService(
         request.pruneApprovals(teamPlayers.map { it.uuid }.toSet())
 
         sendRequestMessages(request, team, teamPlayers)
-        requester.sendMessage(serverText("已向").append(serverTeamName(team)).append("发送入队申请。").formatted(ChatFormatting.YELLOW))
+        requester.sendMessage(text.string(StringKey.TeamchestSpectatorRequestSent, serverTeamName(team)).formatted(ChatFormatting.YELLOW))
         requester.player.closeContainer()
     }
 
     fun approve(approver: IPlayerHandle, requesterId: UUID, teamKey: BingoTeamKey) {
         val request = requests[RequestKey(requesterId, teamKey)]
         if (request == null) {
-            approver.sendMessage(serverText("该入队申请已经失效。").formatted(ChatFormatting.RED))
+            approver.sendMessage(text.string(StringKey.TeamchestSpectatorErrorRequestExpired).formatted(ChatFormatting.RED))
             return
         }
 
         val team = getTeamTemplate(teamKey)
         if (team == null) {
             requests.remove(request.key)
-            approver.sendMessage(serverText("该入队申请已经失效。").formatted(ChatFormatting.RED))
+            approver.sendMessage(text.string(StringKey.TeamchestSpectatorErrorRequestExpired).formatted(ChatFormatting.RED))
             return
         }
 
         if (teamService.getPlayerTeam(approver)?.key != teamKey) {
-            approver.sendMessage(serverText("你已经不在该队伍中。").formatted(ChatFormatting.RED))
+            approver.sendMessage(text.string(StringKey.TeamchestSpectatorErrorNotInTeam).formatted(ChatFormatting.RED))
             return
         }
 
@@ -256,7 +256,7 @@ internal class SpectatorTeamJoinService(
         }
 
         if (requester.uuid in joiningPlayers) {
-            approver.sendMessage(serverText("该入队申请已经失效。").formatted(ChatFormatting.RED))
+            approver.sendMessage(text.string(StringKey.TeamchestSpectatorErrorRequestExpired).formatted(ChatFormatting.RED))
             return
         }
 
@@ -296,7 +296,7 @@ internal class SpectatorTeamJoinService(
                 val currentPlayer = playerManager.getPlayer(playerId)
                 if (error != null) {
                     log.warn("Failed to join spectator {} to team {}", playerName, team.key.id, error)
-                    currentPlayer?.sendMessage(serverText("加入队伍失败，请重新申请。").formatted(ChatFormatting.RED))
+                    currentPlayer?.sendMessage(text.string(StringKey.TeamchestSpectatorErrorJoinFailed).formatted(ChatFormatting.RED))
                     return@whenCompleteAsync
                 }
 
@@ -329,7 +329,7 @@ internal class SpectatorTeamJoinService(
         }
 
         request.approved = true
-        requester.sendMessage(serverText("正在加入").append(serverTeamName(team)).append("……").formatted(ChatFormatting.YELLOW))
+        requester.sendMessage(text.string(StringKey.TeamchestSpectatorJoining, serverTeamName(team)).formatted(ChatFormatting.YELLOW))
         joinApprovedTeam(requester, team)
         return true
     }
@@ -348,9 +348,9 @@ internal class SpectatorTeamJoinService(
         recipientId: UUID,
     ): IText {
         val action = if (recipientId in request.approvals) {
-            serverText("已同意").formatted(ChatFormatting.GRAY)
+            text.string(StringKey.TeamchestSpectatorApproved).formatted(ChatFormatting.GRAY)
         } else {
-            serverText("点击同意")
+            text.string(StringKey.TeamchestSpectatorClickToApprove)
                 .formatted(ChatFormatting.GREEN, ChatFormatting.UNDERLINE)
                 .also {
                     it.setClickEvent(
@@ -363,7 +363,7 @@ internal class SpectatorTeamJoinService(
 
         return text.empty()
             .append(text.literal(request.requesterName).formatted(ChatFormatting.AQUA))
-            .append(serverText("玩家想加入你们的队伍"))
+            .append(text.string(StringKey.TeamchestSpectatorWantsToJoin))
             .append(action.bracketed())
             .append(text.literal("(${request.approvals.size}/$teamSize)").formatted(ChatFormatting.YELLOW))
     }
@@ -375,7 +375,7 @@ internal class SpectatorTeamJoinService(
     ) {
         val message = text.empty()
             .append(text.literal(request.requesterName).formatted(ChatFormatting.AQUA))
-            .append(serverText("已加入").formatted(ChatFormatting.YELLOW))
+            .append(text.string(StringKey.TeamchestSpectatorJoined).formatted(ChatFormatting.YELLOW))
             .append(serverTeamName(team))
 
         for (recipient in recipients) {
@@ -463,31 +463,17 @@ internal class SpectatorTeamJoinService(
         if (remove) {
             requests.remove(request.key)
         }
-        val message = serverText("该入队申请已经失效。").formatted(ChatFormatting.YELLOW)
+        val message = text.string(StringKey.TeamchestSpectatorErrorRequestExpired).formatted(ChatFormatting.YELLOW)
 
         for (recipient in onlineTeamPlayers(request.teamKey)) {
             recipient.sendMessage(message.copy())
         }
     }
 
-    private fun serverText(value: String): IText {
-        return text.literal(value)
-    }
-
     private fun serverTeamName(team: BingoTeam, bracketed: Boolean = true): IText {
-        val name = when (team.key.id) {
-            "bingo_aqua" -> "青队"
-            "bingo_blue" -> "蓝队"
-            "bingo_gray" -> "灰队"
-            "bingo_green" -> "绿队"
-            "bingo_orange" -> "橙队"
-            "bingo_pink" -> "粉队"
-            "bingo_red" -> "红队"
-            "bingo_yellow" -> "黄队"
-            else -> return team.getName(text, bracketed = bracketed)
-        }
-        val teamName = serverText(name).formatted(team.textColor)
-        return if (bracketed) teamName.bracketed() else teamName
+        // Team names are localized through bingo.team.* / bingo.team.name, and getName()
+        // already applies the team color, so no per-language name table is needed here.
+        return team.getName(text, bracketed = bracketed)
     }
 
     private fun pruneOfflineApprovals(playerId: UUID) {

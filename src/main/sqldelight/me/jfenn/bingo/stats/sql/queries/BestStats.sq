@@ -2,7 +2,7 @@ bestTimeSingleplayer:
 SELECT * FROM BestTime WHERE bingo_options_hash = ? AND host_id = :host_id AND is_singleplayer = 1;
 
 bestTimeMultiplayer:
-SELECT * FROM BestTime WHERE bingo_options_hash = ? AND host_id = ?
+SELECT * FROM BestTime WHERE bingo_options_hash = ? AND host_id = ? AND is_singleplayer = 0
 ORDER BY duration ASC LIMIT 1;
 
 updateTime:

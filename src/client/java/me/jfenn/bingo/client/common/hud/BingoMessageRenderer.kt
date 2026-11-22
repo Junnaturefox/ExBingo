@@ -57,18 +57,18 @@ internal class BingoMessageRenderer(
         drawService.matrices.translate(x.toFloat(), y.toFloat(), z.toFloat())
         drawService.matrices.scale(messageScale, messageScale, 1f)
 
+        // Drop expired messages up front. The drawing loop below only looks at the newest 5, so
+        // cleaning up inside it would never reach older entries and state.messages would grow for
+        // the whole round (and `reversed()` copies the list every frame).
+        val expireBefore = now - duration - fadeInDuration
+        state.messages.removeAll { it.createdAt < expireBefore }
+
         var itemY = if (isAboveCard) -ITEM_HEIGHT else 0
         for (message in messages.reversed().take(5)) {
             val timeSinceCreated = now - message.createdAt
             val fadeIn = (timeSinceCreated / fadeInDuration).toFloat().coerceIn(0f, 1f)
             val fadeOut = (1f - ((timeSinceCreated - duration) / fadeInDuration).toFloat()).coerceIn(0f, 1f)
             val visibility = fadeIn * fadeOut
-
-            if (timeSinceCreated > (duration + fadeInDuration)) {
-                // if the item is no longer visible and its duration is over, remove it from the list
-                state.messages.remove(message)
-                continue
-            }
 
             drawService.matrices.push()
             drawService.matrices.translate(

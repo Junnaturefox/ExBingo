@@ -137,8 +137,11 @@ class PlayerHandle(
         ).map { ResourceLocation.parse(it) }
     }
 
-    private fun getItemStackFactory() = itemStackFactory
-        ?: BingoKoin.getScope(player.server)!!.get<IItemStackFactory>()
+    private fun getItemStackFactory(): IItemStackFactory = itemStackFactory
+        // The scope is null when the player handle outlives the bingo scope (e.g. a handle created
+        // for a global event); fail with a meaningful message instead of a bare !! NPE inside a mixin.
+        ?: BingoKoin.getScope(player.server)?.get<IItemStackFactory>()
+        ?: throw IllegalStateException("No Bingo scope is available for player ${player.name.string}")
 
     override val world: IServerWorld
         get() = ServerWorldImpl(player.serverLevel())

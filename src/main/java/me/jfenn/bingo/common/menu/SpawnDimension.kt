@@ -27,8 +27,9 @@ internal fun MenuComponent.registerDimensionMenu(
     )
 
     val dimensionLabels = dimensions.map { identifier ->
-        // 使用标准维度翻译键 dimension.<namespace>.<path>，复用各模组/原版及本资源包提供的维度名翻译，
-        // 不再维护独立的 bingo.dimension.* 键。
+        // Reuse the standard dimension translation key dimension.<namespace>.<path> so the names
+        // provided by mods, vanilla, and this mod's resource packs all apply; there is no separate
+        // bingo.dimension.* key set to maintain.
         val key = "dimension." + identifier.replace(':', '.').replace('/', '.')
         val fallback = identifier.substringAfterLast(':').formatTitle()
         text.translatable(key, fallback)

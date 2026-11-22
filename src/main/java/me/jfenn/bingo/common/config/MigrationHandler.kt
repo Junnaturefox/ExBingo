@@ -342,14 +342,14 @@ class MigrationHandler(
 
         if (log.isDebugEnabled) {
             listOf(TierListLoader.TIERLISTS_PATH, TagLoader.TAGS_PATH)
-                .flatMap {
-                    environment.configDir.resolve(TierListLoader.TIERLISTS_PATH)
+                .flatMap { path ->
+                    environment.configDir.resolve(path)
                         .takeIf { it.isDirectory() }
                         ?.listDirectoryEntries(glob = "*.json")
                         .orEmpty()
                 }
                 .forEach {
-                    log.info("| $MOD_ID_BINGO | ${it.fileName.toString().padEnd(40)} | ${md5Of(it)} |")
+                    log.debug("| $MOD_ID_BINGO | ${it.fileName.toString().padEnd(40)} | ${md5Of(it)} |")
                 }
         }
     }

@@ -43,13 +43,16 @@ internal class BossBarManager(
     }
 
     override fun list(): List<IBossBar> {
+        // synchronizedList only locks its own methods, so iteration must hold the lock; the dead
+        // WeakReferences are pruned here too, otherwise the (JVM-global) table only ever grows.
+        val tracked = synchronized(serverBossBars) {
+            serverBossBars.removeAll { it.get() == null }
+            serverBossBars.mapNotNull { it.get() }
+        }
+
         return server.customBossEvents.events
             .map { BossBarImpl(it) }
-            .plus(
-                serverBossBars
-                    .mapNotNull { it.get() }
-                    .map { BossBarImpl(it) }
-            )
+            .plus(tracked.map { BossBarImpl(it) })
     }
 }
 

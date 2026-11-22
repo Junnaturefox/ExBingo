@@ -31,7 +31,12 @@ data class BingoCardOptions(
     }
 
     fun assertValid() {
-        assert(itemDistribution.size == TierLabel.entries.size) { "Item distribution $itemDistribution does not match the number of tiers (${TierLabel.entries.size})!" }
+        // Kotlin's `assert` compiles to a no-op unless -ea is enabled, which it is not in a real
+        // server, so an explicit check is required here. itemDistribution comes from the
+        // user-editable game-options.json and is indexed by tier by CardService.
+        if (itemDistribution.size != TierLabel.entries.size) {
+            throw IllegalStateException("Item distribution $itemDistribution does not match the number of tiers (${TierLabel.entries.size})!")
+        }
     }
 
     fun formatGameMode(): List<StringKey> {
@@ -48,7 +53,7 @@ data class BingoCardOptions(
     fun formatItemDist(text: TextProvider): IText {
         return TierLabel.entries
             .mapIndexed { i, label ->
-                text.literal("${itemDistribution[i]}").formatted(label.formatting)
+                text.literal("${itemDistribution.getOrNull(i) ?: 0}").formatted(label.formatting)
             }
             .let { text.joinText(it, text.literal(" ")) }
     }

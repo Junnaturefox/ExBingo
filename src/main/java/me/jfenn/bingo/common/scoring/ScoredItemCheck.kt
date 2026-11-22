@@ -167,7 +167,10 @@ internal class ScoredItemCheck(
                 entriesToReplace.addAll(scoredEntries)
 
                 if (scoredEntries.isNotEmpty()) {
-                    val addItems = scoredEntries.size
+                    // A line goal flattens the scored lines, so a cell shared by several completed
+                    // lines appears more than once - count distinct entries so the awarded items match
+                    // the cells that are actually replaced.
+                    val addItems = scoredEntries.distinct().size
                     val addLines = scoredLines.count { line -> line.any { scoredEntries.contains(it) } }
                     val addScore = TeamScore.ZERO.copy(items = addItems, lines = addLines)
 

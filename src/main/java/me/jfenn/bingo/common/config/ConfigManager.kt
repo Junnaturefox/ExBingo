@@ -44,6 +44,23 @@ class ConfigManager(
         return Files.newOutputStream(filePath)
     }
 
+    /**
+     * Moves a config file that exists but cannot be decoded out of the way, so the default value
+     * that is written next does not silently overwrite the user's settings.
+     */
+    private fun quarantineUnreadableConfig(path: String) {
+        val filePath = configDir.resolve(path)
+        if (!Files.exists(filePath)) return
+
+        val backup = filePath.resolveSibling("${filePath.fileName}.corrupt-${System.currentTimeMillis()}")
+        try {
+            Files.move(filePath, backup)
+            log.warn("Moved unreadable config file to {}", backup)
+        } catch (e: java.io.IOException) {
+            log.error("Unable to back up unreadable config file {}", filePath, e)
+        }
+    }
+
     @OptIn(ExperimentalSerializationApi::class)
     override fun <T: Any> read(type: KType, file: String): T {
         @Suppress("UNCHECKED_CAST")
@@ -54,6 +71,7 @@ class ConfigManager(
             null
         } catch (e: Exception) {
             log.error("Error reading $file", e)
+            quarantineUnreadableConfig(file)
             null
         } ?: run {
             json.decodeFromString(serializer, "{}").also { write(type, file, it) }

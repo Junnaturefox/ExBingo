@@ -1,2 +1,2 @@
-package me.jfenn.bingo.platform.text 
+package me.jfenn.bingo.platform.text
 

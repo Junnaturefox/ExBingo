@@ -54,17 +54,21 @@ class DrawService(
             RenderBuffers(Runtime.getRuntime().availableProcessors())
         }
 
-        // 棋盘格子直接渲染,不走离屏 framebuffer 缓存。
+        // Board cards are rendered directly, without the offscreen framebuffer cache.
         //
-        // 离屏 framebuffer 路径(newBuffer/FramebufferImpl)会把整张棋盘预渲染成一张纹理缓存,
-        // 但它重建的投影/深度/渲染状态无法正确渲染**需要走完整模型管线的物品**:
-        //   - BEWLR 特殊渲染物品(头颅、奖杯如 twilightforest:knight_phantom_trophy、盾牌、旗帜、潜影盒)
-        //   - 多层 / 自发光(emissive)模型方块(如 twilightforest:carminite_block 砷铅铁块)
-        // 这些物品在离屏路径里会渲染为透明。已实机验证:关闭离屏缓存、走直接渲染后全部正常。
+        // The offscreen path (newBuffer/FramebufferImpl) pre-renders the whole board into a texture,
+        // but the projection/depth/render state it restores cannot correctly render items that need
+        // the full model pipeline:
+        //   - BEWLR items (heads, trophies such as twilightforest:knight_phantom_trophy, shields,
+        //     banners, shulker boxes)
+        //   - multi-layer / emissive model blocks (e.g. twilightforest:carminite_block)
+        // Those items render as transparent through the offscreen path. Verified in-game: turning the
+        // offscreen cache off and rendering directly makes all of them render correctly.
         //
-        // 棋盘格子数量有限(25 格 × 少数队伍),直接渲染的每帧开销在现代机器上可忽略,
-        // 正确性优先于这层缓存。framebuffer 实现保留在 newBuffer/FramebufferImpl,
-        // 若将来修好其投影/深度/状态重建,可改回 true 重新启用缓存。
+        // A board has a limited number of cells (25 x a handful of teams), so the per-frame cost of
+        // direct rendering is negligible on modern hardware - correctness wins over this cache. The
+        // framebuffer implementation is kept in newBuffer/FramebufferImpl; if its projection/depth/
+        // state restoration is ever fixed, flip this back to true to re-enable the cache.
         override val isBufferSupported: Boolean = false
 
         override fun newBuffer(width: Int, height: Int): IFramebuffer {

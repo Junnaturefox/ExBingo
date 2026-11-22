@@ -51,6 +51,7 @@ class SimpleVoiceApi: IVoiceApi {
                 val group = serverApi.getGroup(groupId)
                 if (group == null) {
                     log.error("[VoiceIntegration] Cannot add player $player to group $groupId, as it does not exist!")
+                    return
                 }
                 connection.group = group
             } else {

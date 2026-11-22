@@ -13,8 +13,10 @@ class GameRulesImpl(
     override val showDeathMessages = BooleanRule(GameRules.RULE_SHOWDEATHMESSAGES)
     override val keepInventory = BooleanRule(GameRules.RULE_KEEPINVENTORY)
     override val pvp: IGameRule<Boolean> = object : IGameRule<Boolean> {
+        // IGameRule.name is part of the platform contract and is used as an override map key;
+        // throwing here (previously NotImplementedError) crashed any path that read it.
         override val name: String
-            get() = throw NotImplementedError()
+            get() = "pvp"
         override var value: Boolean
             get() = server.isPvpAllowed
             set(value) {

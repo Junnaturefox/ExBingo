@@ -48,19 +48,17 @@ internal class VoiceGroupController(
     }
 
     private var combinedGroup: IGroupHandle? = null
-        get() = field ?: run {
-            val settings = config.combinedGroup ?: return@run null
-            field = voiceApi.createGroup(settings)
-            field
-        }
-
-
     private var spectatorsGroup: IGroupHandle? = null
-        get() = field ?: run {
-            val settings = config.spectatorGroup ?: return@run null
-            field = voiceApi.createGroup(settings)
-            field
-        }
+
+    // Groups are created on demand here. The PREGAME cleanup must NOT go through these helpers:
+    // creating a group is a side effect, and SimpleVoiceApi.createGroup reuses an existing group by
+    // name, so cleanup would otherwise create-and-destroy a group on every return to the lobby and
+    // could delete a group this mod does not own.
+    private fun ensureCombinedGroup(): IGroupHandle? =
+        combinedGroup ?: config.combinedGroup?.let { voiceApi.createGroup(it) }?.also { combinedGroup = it }
+
+    private fun ensureSpectatorsGroup(): IGroupHandle? =
+        spectatorsGroup ?: config.spectatorGroup?.let { voiceApi.createGroup(it) }?.also { spectatorsGroup = it }
 
     private val teamGroups = mutableMapOf<String, IGroupHandle?>()
     private fun createTeamGroup(team: BingoTeam): IGroupHandle? {
@@ -76,16 +74,40 @@ internal class VoiceGroupController(
     }
 
     private fun getGroup(team: BingoTeam?): IGroupHandle? {
+        // voicechat.json exposes `enabled`; honour it here, the single entry point for all group
+        // assignment, so an admin can actually turn the integration off.
+        if (!config.enabled) return null
+
         return when {
             state.state == GameState.PREGAME -> null
-            state.state == GameState.POSTGAME -> combinedGroup
-            config.useCombinedGroupAlways -> combinedGroup
-            team == null -> spectatorsGroup
-            isUsingCombinedGroup() -> combinedGroup
+            state.state == GameState.POSTGAME -> ensureCombinedGroup()
+            config.useCombinedGroupAlways -> ensureCombinedGroup()
+            team == null -> ensureSpectatorsGroup()
+            isUsingCombinedGroup() -> ensureCombinedGroup()
             // if the game is _not_ using a combined group, move winning teams to spectator
-            team.isWinner() -> spectatorsGroup
+            team.isWinner() -> ensureSpectatorsGroup()
             else -> createTeamGroup(team)
         }
+    }
+
+    private fun resetGroups() {
+        val combined = combinedGroup.also { combinedGroup = null }
+        val spectators = spectatorsGroup.also { spectatorsGroup = null }
+        val teams = teamGroups.values.toList()
+        teamGroups.clear()
+        usingCombinedGroup = null
+
+        // Remove players from all groups first: voicechat never deletes a group that still has
+        // players in it. Only the groups that already exist are touched - nothing is created here.
+        playerManager.getPlayers().forEach { player ->
+            combined?.removePlayer(player)
+            spectators?.removePlayer(player)
+            teams.forEach { it?.removePlayer(player) }
+        }
+
+        combined?.close()
+        spectators?.close()
+        teams.forEach { it?.close() }
     }
 
     private fun updateGroups(players: List<IPlayerHandle>) {
@@ -119,21 +141,7 @@ internal class VoiceGroupController(
         }
 
         scopedEvents.onEnter(GameState.PREGAME) {
-            // Remove players from all groups
-            // (as voicechat never deletes groups that have players in them)
-            playerManager.getPlayers().forEach { player ->
-                combinedGroup?.removePlayer(player)
-                spectatorsGroup?.removePlayer(player)
-                teamGroups.values.forEach { it?.removePlayer(player) }
-            }
-
-            usingCombinedGroup = null
-            combinedGroup?.close()
-            combinedGroup = null
-            spectatorsGroup?.close()
-            spectatorsGroup = null
-            teamGroups.values.forEach { it?.close() }
-            teamGroups.clear()
+            resetGroups()
         }
 
         scopedEvents.onChangeTeam { (player) ->

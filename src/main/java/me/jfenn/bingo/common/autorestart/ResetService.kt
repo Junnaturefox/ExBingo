@@ -35,11 +35,24 @@ internal class ResetService(
     private val serverTaskExecutor: IExecutors.IServerTaskExecutor,
     private val log: Logger,
 ) {
+    @Volatile
+    private var isResetting = false
+
     fun resetGame() {
         if (!state.isLobbyMode) {
-            error("This shouldn't be happening. Tell fennifith to stop writing bad code.")
+            log.error("[Reset] resetGame() called outside of lobby mode - ignoring.")
+            return
         }
 
+        // Two triggers can land in the same tick (two ops running /bingo reset, or two players
+        // disconnecting together); running the world recreation twice would invalidate the world
+        // objects that the first reset already scheduled work against.
+        if (isResetting) {
+            log.warn("[Reset] resetGame() is already in progress - ignoring duplicate request.")
+            return
+        }
+
+        isResetting = true
         try {
             tickManager.setFrozen(false)
             resetGameWorlds()
@@ -47,6 +60,7 @@ internal class ResetService(
             log.error("[Reset] resetGameWorlds() failed", e)
             throw e
         } finally {
+            isResetting = false
             tickManager.setFrozen(false)
         }
     }

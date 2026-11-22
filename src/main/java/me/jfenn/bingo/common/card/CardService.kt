@@ -159,7 +159,7 @@ internal class CardService(
         }
 
         if (teams.sumOf { it.players.size } !in reqs.numPlayers) {
-            err(text.string(StringKey.CommandStartDataRecommendsNumPlayers, listName, reqs.numPlayersPerTeam.formatString(), GameCommands.IGNORE_WARNINGS_COMMAND))
+            err(text.string(StringKey.CommandStartDataRecommendsNumPlayers, listName, reqs.numPlayers.formatString(), GameCommands.IGNORE_WARNINGS_COMMAND))
             isSupported = false
         }
 
@@ -467,10 +467,7 @@ internal class CardService(
             uncategorizedObjectives.map { it.item }.toSet()
         )
 
-        // Determine the set of unobtainable items
-        tags[ObjectiveFilter.UNOBTAINABLE] = TagData(
-            (tags[ObjectiveFilter.UNOBTAINABLE]?.values ?: emptySet())
-        )
+        // The UNOBTAINABLE tag is produced by UnobtainableTagProvider; there is nothing to rewrite here.
 
         // Objectives that should not appear on cards by default, but can still be opted
         // into explicitly through an include/count filter (e.g. +unbreakable, +from=<mod>).
@@ -678,11 +675,13 @@ internal class CardService(
 
         // Pick the given number of items from the tier list for each tier
         for ((tierIndex, tier) in TierLabel.entries.withIndex()) {
-            var tierCountRemaining = dist[tierIndex]
+            // itemDistribution comes from the user-editable game-options.json and isValid() only runs
+            // an `assert`, so it can legitimately be shorter than the 5 tier labels. Index defensively.
+            var tierCountRemaining = dist.getOrNull(tierIndex) ?: 0
 
             // First, attempt to add items that satisfy the required filter counts
             for ((tag, count) in requiredTagCounts.shuffled(random)) {
-                val itemCount = count[tierIndex].coerceAtMost(tierCountRemaining)
+                val itemCount = (count.getOrNull(tierIndex) ?: 0).coerceAtMost(tierCountRemaining)
 
                 tierList.pick(tier, excludedObjectives, random, sourceWeights)
                     .filter { tag.contains(it.item) }

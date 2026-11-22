@@ -554,7 +554,13 @@ internal class BingoHudScreen(
 
     override fun shouldCloseOnEsc() = canEscape
 
+    private var isClosed = false
+
     override fun onClose() {
+        // onClose() and removed() can both fire for the same screen (e.g. Escape vs setScreen(null)),
+        // so keep the callback and the listener cleanup idempotent.
+        if (isClosed) return
+        isClosed = true
         onCloseCallback.invoke(this)
         hudStateListener.close()
     }

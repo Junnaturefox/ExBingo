@@ -92,6 +92,10 @@ internal class BingoHudController(
     private var fireworkRenderer: BingoEndFireworkRenderer? = null
 
     private fun requestCardState(force: Boolean = false) {
+        // Also scheduled with a delay: by the time one of those fires the player may have
+        // disconnected, and sending a packet then NPEs inside PacketDistributor.sendToServer.
+        if (net.minecraft.client.Minecraft.getInstance().player?.connection == null) return
+
         val now = Instant.now()
         val lastRequestAt = lastIncompleteCardStateRequestAt
         if (!force && lastRequestAt != null && now - lastRequestAt < INCOMPLETE_CARD_REQUEST_COOLDOWN)

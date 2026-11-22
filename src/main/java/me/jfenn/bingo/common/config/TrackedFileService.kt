@@ -99,7 +99,7 @@ internal class TrackedFileService(
                 // - this may happen if a datapack providing the file was uninstalled
                 log.warn("[$name] Resource no longer exists - removing from config folder!")
                 path.deleteIfExists()
-                configService.files = configService.files.minus(trackedFile)
+                synchronized(this) { configService.files = configService.files.minus(trackedFile) }
                 return Result(false, null)
             } else {
                 // Otherwise, this is a new file that was created
@@ -125,7 +125,9 @@ internal class TrackedFileService(
             try {
                 path.parent.toFile().mkdirs()
                 path.toFile().writeText(resourceJson)
-                configService.files = configService.files.plus(newTrackedFile)
+                // The data loaders run in parallel, so the read-modify-write of the tracked file list
+                // must not interleave - otherwise the last writer drops the entries of the others.
+                synchronized(this) { configService.files = configService.files.plus(newTrackedFile) }
             } catch (e: IOException) {
                 log.error("Error writing to $path:", e)
             }

@@ -46,12 +46,10 @@ class DataCommands(
                                 val matchedObjectives = scope.get<ObjectiveListService>().getAllObjectives()
                                     .filter { matchesWildcardString(objectivePattern, it) }
 
-                                for (objective in matchedObjectives) {
-                                    scope.get<DataCommandService>().addToTag(
-                                        tagName = tag,
-                                        objective = objective,
-                                    )
-                                }
+                                scope.get<DataCommandService>().addAllToTag(
+                                    tagName = tag,
+                                    objectives = matchedObjectives,
+                                )
 
                                 sendFeedback(
                                     text.string(
@@ -84,12 +82,10 @@ class DataCommands(
                                 val matchedObjectives = scope.get<ScopedData>().tags[tag]?.values.orEmpty()
                                     .filter { matchesWildcardString(objectivePattern, it) }
 
-                                for (objective in matchedObjectives) {
-                                    scope.get<DataCommandService>().removeFromTag(
-                                        tagName = tag,
-                                        objective = objective,
-                                    )
-                                }
+                                scope.get<DataCommandService>().removeAllFromTag(
+                                    tagName = tag,
+                                    objectives = matchedObjectives,
+                                )
 
                                 sendFeedback(
                                     text.string(
@@ -136,13 +132,11 @@ class DataCommands(
                                             .getAllObjectives()
                                             .filter { matchesWildcardString(objectivePattern, it) }
 
-                                        for (objective in matchedObjectives) {
-                                            scope.get<DataCommandService>().addToTierList(
-                                                listName = list,
-                                                objective = objective,
-                                                tier = tier,
-                                            )
-                                        }
+                                        scope.get<DataCommandService>().addAllToTierList(
+                                            listName = list,
+                                            objectives = matchedObjectives,
+                                            tier = tier,
+                                        )
 
                                         sendFeedback(
                                             text.string(
@@ -180,12 +174,10 @@ class DataCommands(
                                     .map { it.item }
                                     .filter { matchesWildcardString(objectivePattern, it) }
 
-                                for (objective in matchedObjectives) {
-                                    scope.get<DataCommandService>().removeFromTierList(
-                                        listName = list,
-                                        objective = objective,
-                                    )
-                                }
+                                scope.get<DataCommandService>().removeAllFromTierList(
+                                    listName = list,
+                                    objectives = matchedObjectives,
+                                )
 
                                 sendFeedback(
                                     text.string(

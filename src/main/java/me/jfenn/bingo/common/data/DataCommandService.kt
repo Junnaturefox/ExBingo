@@ -26,27 +26,48 @@ internal class DataCommandService(
             }, executors.main)
     }
 
-    fun addToTag(tagName: String, objective: String) {
+    fun addToTag(tagName: String, objective: String) = addAllToTag(tagName, listOf(objective))
+
+    /**
+     * Writes every objective into the tag with a single write and a single reload.
+     *
+     * [scopedData] is only refreshed asynchronously by [reload], so calling [addToTag] in a loop
+     * re-reads the same stale snapshot each iteration and each write discards the previous one -
+     * only the last objective would survive.
+     */
+    fun addAllToTag(tagName: String, objectives: Collection<String>) {
+        if (objectives.isEmpty()) return
         val tag = scopedData.tags[tagName] ?: TagData.EMPTY
-        tagLoader.writeTag(tagName, tag.plus(objective))
+        tagLoader.writeTag(tagName, objectives.fold(tag) { acc, objective -> acc.plus(objective) })
         reload()
     }
 
-    fun removeFromTag(tagName: String, objective: String) {
+    fun removeFromTag(tagName: String, objective: String) = removeAllFromTag(tagName, listOf(objective))
+
+    fun removeAllFromTag(tagName: String, objectives: Collection<String>) {
+        if (objectives.isEmpty()) return
         val tag = scopedData.tags[tagName] ?: TagData.EMPTY
-        tagLoader.writeTag(tagName, tag.minus(objective))
+        tagLoader.writeTag(tagName, objectives.fold(tag) { acc, objective -> acc.minus(objective) })
         reload()
     }
 
-    fun addToTierList(listName: String, objective: String, tier: TierLabel?) {
+    fun addToTierList(listName: String, objective: String, tier: TierLabel?) =
+        addAllToTierList(listName, listOf(objective), tier)
+
+    fun addAllToTierList(listName: String, objectives: Collection<String>, tier: TierLabel?) {
+        if (objectives.isEmpty()) return
         val tierList = scopedData.tierLists[listName] ?: TierListConfig.EMPTY
-        tierListLoader.writeTierList(listName, tierList.plus(objective, tier))
+        tierListLoader.writeTierList(listName, objectives.fold(tierList) { acc, objective -> acc.plus(objective, tier) })
         reload()
     }
 
-    fun removeFromTierList(listName: String, objective: String) {
+    fun removeFromTierList(listName: String, objective: String) =
+        removeAllFromTierList(listName, listOf(objective))
+
+    fun removeAllFromTierList(listName: String, objectives: Collection<String>) {
+        if (objectives.isEmpty()) return
         val tierList = scopedData.tierLists[listName] ?: TierListConfig.EMPTY
-        tierListLoader.writeTierList(listName, tierList.minus(objective))
+        tierListLoader.writeTierList(listName, objectives.fold(tierList) { acc, objective -> acc.minus(objective) })
         reload()
     }
 }

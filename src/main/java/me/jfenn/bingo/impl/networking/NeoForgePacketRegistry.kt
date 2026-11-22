@@ -147,7 +147,7 @@ object NeoForgePacketRegistry {
     fun hasChannel(player: ServerPlayer, id: ResourceLocation): Boolean {
         return runCatching {
             NetworkRegistry.hasChannel(player.connection, id)
-        }.getOrDefault(true)
+        }.getOrDefault(false)
     }
 
     internal fun registeredC2SIds(): Set<ResourceLocation> = c2s.keys.toSet()

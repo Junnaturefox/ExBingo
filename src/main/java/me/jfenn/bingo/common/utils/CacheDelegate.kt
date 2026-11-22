@@ -14,7 +14,6 @@ class CacheDelegateArg<T, A>(
     fun get(arg: A): T {
         val now = Instant.now()
         if (lastExecution?.let { it + timeout > now } == true) {
-            lastExecution = now
             lastValue?.get()?.let { return it }
         }
 

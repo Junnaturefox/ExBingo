@@ -39,7 +39,7 @@ internal fun MenuComponent.registerNumberInput(
         isActiveProp = ConstantProperty(true),
         tooltip = tooltip,
     ) { player ->
-        value = (((value / step) + 1) * step)
+        value = (value + step)
             .coerceIn(minValue, maxValue)
             .also { onChange(player, it) }
     }
@@ -56,7 +56,7 @@ internal fun MenuComponent.registerNumberInput(
         isActiveProp = ConstantProperty(true),
         tooltip = tooltip,
     ) { player ->
-        value = (((value / step) - 1) * step)
+        value = (value - step)
             .coerceIn(minValue, maxValue)
             .also { onChange(player, it) }
     }

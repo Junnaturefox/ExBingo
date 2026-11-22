@@ -106,17 +106,17 @@ internal class TeamService(
 
     fun shuffleTeams(numTeams: Int) {
         // Since teams are being shuffled, all existing teams should be cleared
+        // (release the spawnpoint tickets first, otherwise their chunks stay force-loaded)
+        state.teams.values.forEach { it.spawnpointTicket?.close() }
         state.teams.clear()
 
         val teams = data.teamPresets.entries
             .shuffled()
-            // Prefer shuffling onto teams that have the most players
-            .sortedByDescending { state.teams[it.key]?.players?.size ?: 0 }
             .map { BingoTeam.fromPreset(it.key, it.value) }
             .toMutableList()
 
         // If numTeams is more than the default team list, create temporary teams until full
-        for (i in teams.size..numTeams) {
+        for (i in teams.size until numTeams) {
             val temporaryTeam = BingoTeam(
                 id = "temp_bingo_$i",
                 name = text.string(StringKey.TeamName, "$i"),

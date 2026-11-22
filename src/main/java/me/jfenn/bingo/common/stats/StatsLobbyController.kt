@@ -335,7 +335,12 @@ internal class StatsLobbyController(
         if (!pending.isDone) return
         pendingStats = null
 
-        val result = pending.getNow(null) ?: return
+        // getNow() throws for a future that completed exceptionally (e.g. the orTimeout in
+        // StatsService), and `?:` only covers null - swallow the failure instead.
+        val result = runCatching { pending.join() }
+            .onFailure { log.error("[StatsLobbyController] Unable to fetch player summary", it) }
+            .getOrNull()
+            ?: return
         val player = showingPlayer
             ?.let { server.playerList.getPlayer(it) }
             ?: return

@@ -36,47 +36,50 @@ class ConnectionFactory(
 
     private fun doMigrations() {
         val driver = dataSource.asJdbcDriver()
-        val connection = dataSource.connection
 
-        var oldVersion = try {
-            connection.createStatement()
-                .use { it.executeQuery("PRAGMA user_version").getLong("user_version") }
-        } catch (e: Throwable) {
-            log.error("Error determining user_version", e)
-            0L
-        }
-
-        // legacy support for flyway's migration table
-        if (oldVersion == 0L) {
-            val flywayVersion = try {
+        // Scope the bookkeeping connection so it is always returned to the Hikari pool; it used to
+        // stay checked out for the lifetime of the factory (one leaked connection per startup).
+        dataSource.connection.use { connection ->
+            var oldVersion = try {
                 connection.createStatement()
-                    .use {
-                        it.executeQuery("SELECT max(version) AS flyway_version FROM flyway_schema_history")
-                            .getLong("flyway_version")
-                    }
-                    .let { if (it > 0) it + 1 else it }
+                    .use { it.executeQuery("PRAGMA user_version").getLong("user_version") }
             } catch (e: Throwable) {
+                log.error("Error determining user_version", e)
                 0L
             }
 
-            oldVersion = max(oldVersion, flywayVersion)
+            // legacy support for flyway's migration table
+            if (oldVersion == 0L) {
+                val flywayVersion = try {
+                    connection.createStatement()
+                        .use {
+                            it.executeQuery("SELECT max(version) AS flyway_version FROM flyway_schema_history")
+                                .getLong("flyway_version")
+                        }
+                        .let { if (it > 0) it + 1 else it }
+                } catch (e: Throwable) {
+                    0L
+                }
+
+                oldVersion = max(oldVersion, flywayVersion)
+            }
+
+            val newVersion = BingoDatabase.Schema.version
+            log.info("[ConnectionFactory] Migrating database from version $oldVersion to $newVersion...")
+
+            if (oldVersion <= 0L) {
+                BingoDatabase.Schema.create(driver)
+            } else {
+                BingoDatabase.Schema.migrate(
+                    driver = driver,
+                    oldVersion = oldVersion,
+                    newVersion = newVersion,
+                )
+            }
+
+            connection.createStatement()
+                .use { it.execute("PRAGMA user_version = $newVersion") }
         }
-
-        val newVersion = BingoDatabase.Schema.version
-        log.info("[ConnectionFactory] Migrating database from version $oldVersion to $newVersion...")
-
-        if (oldVersion <= 0L) {
-            BingoDatabase.Schema.create(driver)
-        } else {
-            BingoDatabase.Schema.migrate(
-                driver = driver,
-                oldVersion = oldVersion,
-                newVersion = newVersion,
-            )
-        }
-
-        connection.createStatement()
-            .use { it.execute("PRAGMA user_version = $newVersion") }
     }
 
     fun create(): BingoDatabase {

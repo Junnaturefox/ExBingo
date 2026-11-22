@@ -146,7 +146,12 @@ internal class TeamChestService(
 
         fun clearWithoutSaving() {
             suppressSave = true
-            clearContent()
+            // Clear slot by slot instead of SimpleContainer.clearContent(): that shrinks the backing
+            // list, so a click from a player whose menu is still open would throw
+            // IndexOutOfBoundsException on setItem/removeItem.
+            for (slot in 0 until containerSize) {
+                setItem(slot, ItemStack.EMPTY)
+            }
             suppressSave = false
         }
 

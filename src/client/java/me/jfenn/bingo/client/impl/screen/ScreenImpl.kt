@@ -81,4 +81,12 @@ class ScreenImpl(title: Component) : Screen(title) {
         impl?.onClose()
         super.onClose()
     }
+
+    override fun removed() {
+        // Minecraft#setScreen only calls removed() on the old screen and never onClose(), so closing
+        // through the client's own paths (closeExBingoScreen) would otherwise leave the platform
+        // screen's event listeners registered for the rest of the session.
+        impl?.onClose()
+        super.removed()
+    }
 }
