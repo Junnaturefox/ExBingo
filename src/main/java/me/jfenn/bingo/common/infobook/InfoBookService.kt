@@ -19,6 +19,7 @@ import me.jfenn.bingo.platform.IPlayerHandle
 import me.jfenn.bingo.platform.item.IItemStackFactory
 import me.jfenn.bingo.platform.item.IWrittenBook
 import me.jfenn.bingo.platform.scoreboard.IScoreboardManager
+import me.jfenn.bingo.platform.text.IText
 import net.minecraft.ChatFormatting
 
 internal class InfoBookService(
@@ -38,62 +39,68 @@ internal class InfoBookService(
             .formatted(ChatFormatting.DARK_GREEN, ChatFormatting.UNDERLINE)
             .also { it.setClickEvent(TextAction.SuggestCommand(suggestion)) }
 
-    private fun getIntroPage(player: IPlayerHandle) =
-        textFactory.empty()
-            .append(
-                text.string(
-                    StringKey.IntroWelcome,
-                    text.string(StringKey.IntroWelcomeLink).formatted(ChatFormatting.DARK_GREEN, ChatFormatting.UNDERLINE).also {
-                        it.setClickEvent(TextAction.OpenUrl(URL_EXBINGO))
-                    },
-                ).formatted(ChatFormatting.BOLD)
-            )
-            .append("\n")
-            .append(textFactory.literal("v$BINGO_VERSION").formatted(ChatFormatting.GRAY))
-            .append("\n\n")
-            .append(
-                text.string(
-                    StringKey.IntroPortNote,
-                    text.string(StringKey.IntroPortNoteLink).formatted(ChatFormatting.DARK_GREEN, ChatFormatting.UNDERLINE).also {
-                        it.setClickEvent(TextAction.OpenUrl(URL_WIKI))
-                    },
-                ).formatted(ChatFormatting.GRAY)
-            )
-            .also {
-                if (canConfigureGame(player)) {
-                    it.append("\n\n").append(
-                        when {
-                            state.isLobbyMode -> text.string(StringKey.IntroUseConfigMenu)
-                            else -> text.string(
-                                StringKey.IntroUseConfigCommands,
-                                commandLink("/bingo", "/bingo "),
-                            )
-                        }
+    private fun blankLine() = textFactory.literal("")
+
+    private fun getIntroPage(player: IPlayerHandle): List<IText> = buildList {
+        add(
+            textFactory.empty()
+                .append(
+                    text.string(
+                        StringKey.IntroWelcome,
+                        text.string(StringKey.IntroWelcomeLink).formatted(ChatFormatting.DARK_GREEN, ChatFormatting.UNDERLINE).also {
+                            it.setClickEvent(TextAction.OpenUrl(URL_EXBINGO))
+                        },
+                    ).formatted(ChatFormatting.BOLD)
+                )
+        )
+        add(textFactory.literal("v$BINGO_VERSION").formatted(ChatFormatting.GRAY))
+        add(blankLine())
+        add(
+            text.string(
+                StringKey.IntroPortNote,
+                text.string(StringKey.IntroPortNoteLink).formatted(ChatFormatting.DARK_GREEN, ChatFormatting.UNDERLINE).also {
+                    it.setClickEvent(TextAction.OpenUrl(URL_WIKI))
+                },
+            ).formatted(ChatFormatting.GRAY)
+        )
+
+        if (canConfigureGame(player)) {
+            add(blankLine())
+            add(
+                when {
+                    state.isLobbyMode -> text.string(StringKey.IntroUseConfigMenu)
+                    else -> text.string(
+                        StringKey.IntroUseConfigCommands,
+                        commandLink("/bingo", "/bingo "),
                     )
                 }
-            }
-            .append("\n\n")
-            .append(
-                text.string(
-                    StringKey.IntroReadHowToPlay,
-                    text.string(StringKey.IntroReadHowToPlayLink).formatted(ChatFormatting.DARK_GREEN, ChatFormatting.UNDERLINE).also {
-                        it.setClickEvent(TextAction.OpenUrl(URL_WIKI_WHAT_IS_BINGO))
-                    },
-                )
             )
-            .also {
-                if (!canConfigureGame(player)) {
-                    it.append("\n\n").append(text.string(StringKey.IntroChangePlayerSettings))
-                }
-            }
-            .append("\n\n")
-            .append(text.string(StringKey.IntroHaveFun))
+        }
 
-    private fun getHintsPage(player: IPlayerHandle) =
-        textFactory.empty()
-            .append(text.string(StringKey.IntroHints).formatted(ChatFormatting.BOLD))
-            .append("\n\n")
-            .append(when {
+        add(blankLine())
+        add(
+            text.string(
+                StringKey.IntroReadHowToPlay,
+                text.string(StringKey.IntroReadHowToPlayLink).formatted(ChatFormatting.DARK_GREEN, ChatFormatting.UNDERLINE).also {
+                    it.setClickEvent(TextAction.OpenUrl(URL_WIKI_WHAT_IS_BINGO))
+                },
+            )
+        )
+
+        if (!canConfigureGame(player)) {
+            add(blankLine())
+            add(text.string(StringKey.IntroChangePlayerSettings))
+        }
+
+        add(blankLine())
+        add(text.string(StringKey.IntroHaveFun))
+    }
+
+    private fun getHintsPage(player: IPlayerHandle): List<IText> = buildList {
+        add(text.string(StringKey.IntroHints).formatted(ChatFormatting.BOLD))
+        add(blankLine())
+        add(
+            when {
                 cardViewService.supportsCardHud(player) -> text.string(
                     StringKey.IntroKeybindHud,
                     textFactory.keybind(KEYBIND_OPEN_CARD).formatted(ChatFormatting.DARK_GREEN),
@@ -102,82 +109,78 @@ internal class InfoBookService(
                     StringKey.IntroKeybindMap,
                     textFactory.keybind("key.use").formatted(ChatFormatting.DARK_GREEN),
                 )
-            })
-            .also {
-                if (permissions.hasPermission(player, Permission.COMMAND_COORDS)) {
-                    it.append("\n\n").append(text.string(StringKey.IntroUseCoords, commandLink("/coords")))
-                }
             }
+        )
 
-    private fun getModCompatPage() =
-        textFactory.empty()
-            .append(text.string(StringKey.IntroAutotierTitle).formatted(ChatFormatting.BOLD))
-            .append("\n\n")
-            .append(text.string(StringKey.IntroAutotierIntro))
-            .append("\n\n")
-            .append(
-                text.string(
-                    StringKey.IntroAutotierCommand,
-                    commandLink("/bingo autotier generate"),
-                )
-            )
-            .append("\n\n")
-            .append(text.string(StringKey.IntroAutotierNote).formatted(ChatFormatting.GRAY))
+        if (permissions.hasPermission(player, Permission.COMMAND_COORDS)) {
+            add(blankLine())
+            add(text.string(StringKey.IntroUseCoords, commandLink("/coords")))
+        }
+    }
 
-    private fun getCardDisablePage() =
-        textFactory.empty()
-            .append(text.string(StringKey.IntroCarddisableTitle).formatted(ChatFormatting.BOLD))
-            .append("\n\n")
-            .append(text.string(StringKey.IntroCarddisableIntro))
-            .append("\n\n")
-            .append(
-                text.string(
-                    StringKey.IntroCarddisable,
-                    commandLink("/bingo carddisable <board>", "/bingo carddisable "),
-                    commandLink("/bingo cardenable <board>", "/bingo cardenable "),
-                )
-            )
-            .append("\n\n")
-            .append(text.string(StringKey.IntroCarddisableNote).formatted(ChatFormatting.GRAY))
+    private fun getModCompatPage(): List<IText> = buildList {
+        add(text.string(StringKey.IntroAutotierTitle).formatted(ChatFormatting.BOLD))
+        add(blankLine())
+        add(text.string(StringKey.IntroAutotierIntro))
+        add(blankLine())
+        add(text.string(StringKey.IntroAutotierCommand, commandLink("/bingo autotier generate")))
+        add(blankLine())
+        add(text.string(StringKey.IntroAutotierNote).formatted(ChatFormatting.GRAY))
+    }
 
-    private fun getTeamFeaturesPage(player: IPlayerHandle) =
-        textFactory.empty()
-            .append(text.string(StringKey.IntroTeamFeaturesTitle).formatted(ChatFormatting.BOLD))
-            .append("\n\n")
-            .append(
-                text.string(
-                    StringKey.IntroTeamFeaturesChest,
-                    commandLink("/teamchest"),
-                    commandLink("/tc"),
-                )
+    private fun getCardDisablePage(): List<IText> = buildList {
+        add(text.string(StringKey.IntroCarddisableTitle).formatted(ChatFormatting.BOLD))
+        add(blankLine())
+        add(text.string(StringKey.IntroCarddisableIntro))
+        add(blankLine())
+        add(
+            text.string(
+                StringKey.IntroCarddisable,
+                commandLink("/bingo carddisable <board>", "/bingo carddisable "),
+                commandLink("/bingo cardenable <board>", "/bingo cardenable "),
             )
-            .append("\n")
-            .append(
-                text.string(
-                    StringKey.IntroTeamFeaturesChestKey,
-                    textFactory.keybind(KEYBIND_OPEN_TEAM_CHEST).formatted(ChatFormatting.DARK_GREEN),
-                )
+        )
+        add(blankLine())
+        add(text.string(StringKey.IntroCarddisableNote).formatted(ChatFormatting.GRAY))
+    }
+
+    private fun getTeamFeaturesPage(player: IPlayerHandle): List<IText> = buildList {
+        add(text.string(StringKey.IntroTeamFeaturesTitle).formatted(ChatFormatting.BOLD))
+        add(blankLine())
+        add(
+            text.string(
+                StringKey.IntroTeamFeaturesChest,
+                commandLink("/teamchest"),
+                commandLink("/tc"),
             )
-            .append("\n\n")
-            .append(
-                text.string(
-                    StringKey.IntroTeamFeaturesTeleport,
-                    commandLink("/teamtp <player>", "/teamtp "),
-                    commandLink("/ttp <player>", "/ttp "),
-                )
+        )
+        add(
+            text.string(
+                StringKey.IntroTeamFeaturesChestKey,
+                textFactory.keybind(KEYBIND_OPEN_TEAM_CHEST).formatted(ChatFormatting.DARK_GREEN),
             )
-            .also {
-                if (canConfigureGame(player)) {
-                    it.append("\n\n").append(
-                        text.string(
-                            StringKey.IntroTeamFeaturesOps,
-                            commandLink("/teamchest toggle"),
-                            commandLink("/teamchest count"),
-                            commandLink("/tptoggle"),
-                        ).formatted(ChatFormatting.GRAY)
-                    )
-                }
-            }
+        )
+        add(blankLine())
+        add(
+            text.string(
+                StringKey.IntroTeamFeaturesTeleport,
+                commandLink("/teamtp <player>", "/teamtp "),
+                commandLink("/ttp <player>", "/ttp "),
+            )
+        )
+
+        if (canConfigureGame(player)) {
+            add(blankLine())
+            add(
+                text.string(
+                    StringKey.IntroTeamFeaturesOps,
+                    commandLink("/teamchest toggle"),
+                    commandLink("/teamchest count"),
+                    commandLink("/tptoggle"),
+                ).formatted(ChatFormatting.GRAY)
+            )
+        }
+    }
 
     private fun canConfigureGame(player: IPlayerHandle): Boolean =
         config.allowNonOpGameConfiguration ||
@@ -203,78 +206,50 @@ internal class InfoBookService(
                 }
             )
 
-    private fun getSettingsPage(player: IPlayerHandle, settings: PlayerSettings) =
-        textFactory.empty()
-            .append(text.string(StringKey.PlayerSettings).formatted(ChatFormatting.BOLD))
-            .append("\n\n")
-            .append(
-                toggleText(settings.bossbar, StringKey.PlayerSettingsBossbar, StringKey.PlayerSettingsBossbarDescription)
-                    .also {
-                        it.setClickEvent(TextAction.RunCommand(
-                            BingoPrefsCommand.getCommand(PlayerSettings::bossbar, !settings.bossbar)
-                        ))
-                    }
-            )
-            .append("\n\n")
-            .append(
-                toggleText(settings.scoreboard, StringKey.PlayerSettingsScoreboard, StringKey.PlayerSettingsScoreboardDescription)
-                    .also {
-                        it.setClickEvent(TextAction.RunCommand(
-                            BingoPrefsCommand.getCommand(PlayerSettings::scoreboard, !settings.scoreboard)
-                        ))
-                    }
-            )
-            .also {
-                if (!cardViewService.supportsCardHud(player)) {
-                    it.append("\n")
-                    it.append(
-                        toggleText(settings.scoreboardAutoHide, StringKey.PlayerSettingsScoreboardAutoHide, StringKey.PlayerSettingsScoreboardAutoHideDescription)
-                            .also {
-                                it.setClickEvent(TextAction.RunCommand(
-                                    BingoPrefsCommand.getCommand(PlayerSettings::scoreboardAutoHide, !settings.scoreboardAutoHide)
-                                ))
-                            }
-                    )
-                }
+    private fun toggleLine(
+        value: Boolean,
+        name: StringKey,
+        description: StringKey,
+        field: kotlin.reflect.KProperty1<PlayerSettings, Boolean>,
+    ) =
+        toggleText(value, name, description)
+            .also { line ->
+                line.setClickEvent(TextAction.RunCommand(BingoPrefsCommand.getCommand(field, !value)))
             }
-            .append("\n\n")
-            .append(text.string(StringKey.PlayerSettingsMessages))
-            .append(":\n")
-            .append(
-                toggleText(settings.leadingMessages, StringKey.PlayerSettingsMessagesLeading, StringKey.PlayerSettingsMessagesLeadingDescription)
-                    .also {
-                        it.setClickEvent(TextAction.RunCommand(
-                            BingoPrefsCommand.getCommand(PlayerSettings::leadingMessages, !settings.leadingMessages)
-                        ))
-                    }
+
+    private fun getSettingsPage(player: IPlayerHandle, settings: PlayerSettings): List<IText> = buildList {
+        add(text.string(StringKey.PlayerSettings).formatted(ChatFormatting.BOLD))
+        add(blankLine())
+        add(
+            toggleLine(settings.bossbar, StringKey.PlayerSettingsBossbar, StringKey.PlayerSettingsBossbarDescription, PlayerSettings::bossbar)
+        )
+        add(blankLine())
+        add(
+            toggleLine(settings.scoreboard, StringKey.PlayerSettingsScoreboard, StringKey.PlayerSettingsScoreboardDescription, PlayerSettings::scoreboard)
+        )
+
+        if (!cardViewService.supportsCardHud(player)) {
+            add(
+                toggleLine(settings.scoreboardAutoHide, StringKey.PlayerSettingsScoreboardAutoHide, StringKey.PlayerSettingsScoreboardAutoHideDescription, PlayerSettings::scoreboardAutoHide)
             )
-            .append("\n")
-            .append(
-                toggleText(settings.scoreMessages, StringKey.PlayerSettingsMessagesLines, StringKey.PlayerSettingsMessagesLinesDescription)
-                    .also {
-                        it.setClickEvent(TextAction.RunCommand(
-                            BingoPrefsCommand.getCommand(PlayerSettings::scoreMessages, !settings.scoreMessages)
-                        ))
-                    }
-            )
-            .append("\n")
-            .append(
-                toggleText(settings.itemMessages, StringKey.PlayerSettingsMessagesItems, StringKey.PlayerSettingsMessagesItemsDescription)
-                    .also {
-                        it.setClickEvent(TextAction.RunCommand(
-                            BingoPrefsCommand.getCommand(PlayerSettings::itemMessages, !settings.itemMessages)
-                        ))
-                    }
-            )
-            .append("\n\n")
-            .append(
-                toggleText(settings.nightVision, StringKey.PlayerSettingsNightVision, StringKey.PlayerSettingsNightVisionDescription)
-                    .also {
-                        it.setClickEvent(TextAction.RunCommand(
-                            BingoPrefsCommand.getCommand(PlayerSettings::nightVision, !settings.nightVision)
-                        ))
-                    }
-            )
+        }
+
+        add(blankLine())
+        add(textFactory.empty().append(text.string(StringKey.PlayerSettingsMessages)).append(":"))
+        add(
+            toggleLine(settings.leadingMessages, StringKey.PlayerSettingsMessagesLeading, StringKey.PlayerSettingsMessagesLeadingDescription, PlayerSettings::leadingMessages)
+        )
+        add(
+            toggleLine(settings.scoreMessages, StringKey.PlayerSettingsMessagesLines, StringKey.PlayerSettingsMessagesLinesDescription, PlayerSettings::scoreMessages)
+        )
+        add(
+            toggleLine(settings.itemMessages, StringKey.PlayerSettingsMessagesItems, StringKey.PlayerSettingsMessagesItemsDescription, PlayerSettings::itemMessages)
+        )
+        add(blankLine())
+        add(
+            toggleLine(settings.nightVision, StringKey.PlayerSettingsNightVision, StringKey.PlayerSettingsNightVisionDescription, PlayerSettings::nightVision)
+        )
+    }
 
     private fun isBookItem(stack: IWrittenBook) =
         stack.hasCustomTag(NBT_BINGO_INFO_BOOK)
@@ -294,31 +269,40 @@ internal class InfoBookService(
         return stack
     }
 
+    /**
+     * Builds the book pages.
+     *
+     * Each section is a list of single-line components; [BookPaginator] then splits every section
+     * into as many book pages as it needs, because a vanilla page only renders 14 wrapped lines
+     * and silently drops the rest.
+     */
+    private fun buildSections(player: IPlayerHandle, settings: PlayerSettings): List<List<IText>> = buildList {
+        if (settings.seenTutorial) {
+            if (permissions.hasPermission(player, Permission.CONFIGURE_PLAYER))
+                add(getSettingsPage(player, settings))
+            add(getIntroPage(player))
+            add(getHintsPage(player))
+        } else {
+            add(getIntroPage(player))
+            if (permissions.hasPermission(player, Permission.CONFIGURE_PLAYER))
+                add(getSettingsPage(player, settings))
+            add(getHintsPage(player))
+        }
+
+        add(getTeamFeaturesPage(player))
+
+        // mod compatibility & auto-tiering (ops only — it can write server config)
+        if (permissions.hasPermission(player, Permission.COMMAND_AUTOTIER))
+            add(getModCompatPage())
+
+        // disabling boards (ops only — it writes server config)
+        if (permissions.hasPermission(player, Permission.COMMAND_CARD_TOGGLE))
+            add(getCardDisablePage())
+    }
+
     private fun updateBookItem(player: IPlayerHandle, stack: IWrittenBook) {
         val settings = playerSettingsService.getPlayer(player)
-
-        stack.setPages(buildList {
-            if (settings.seenTutorial) {
-                if (permissions.hasPermission(player, Permission.CONFIGURE_PLAYER))
-                    add(getSettingsPage(player, settings))
-                add(getIntroPage(player))
-                add(getHintsPage(player))
-            } else {
-                add(getIntroPage(player))
-                if (permissions.hasPermission(player, Permission.CONFIGURE_PLAYER))
-                    add(getSettingsPage(player, settings))
-                add(getHintsPage(player))
-            }
-            add(getTeamFeaturesPage(player))
-
-            // mod compatibility & auto-tiering (ops only — it can write server config)
-            if (permissions.hasPermission(player, Permission.COMMAND_AUTOTIER))
-                add(getModCompatPage())
-
-            // disabling boards (ops only — it writes server config)
-            if (permissions.hasPermission(player, Permission.COMMAND_CARD_TOGGLE))
-                add(getCardDisablePage())
-        })
+        stack.setPages(BookPaginator.paginate(buildSections(player, settings), textFactory))
     }
 
     fun updateBookItem(player: IPlayerHandle) {
