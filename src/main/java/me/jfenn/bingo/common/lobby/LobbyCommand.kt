@@ -2,6 +2,7 @@ package me.jfenn.bingo.common.lobby
 
 import me.jfenn.bingo.common.commands.runByName
 import me.jfenn.bingo.common.config.BingoConfig
+import me.jfenn.bingo.common.datapack.ServerProps
 import me.jfenn.bingo.common.text.TextProvider
 import me.jfenn.bingo.generated.StringKey
 import me.jfenn.bingo.platform.IModEnvironment
@@ -17,6 +18,7 @@ internal class BingoLobbyCommand(
     commandManager: ICommandManager,
     environment: IModEnvironment,
     config: BingoConfig,
+    serverProps: ServerProps,
     private val text: TextProvider,
 ) {
     private val IExecutionSource.lobbyModeService get() = scope.get<LobbyModeService>()
@@ -50,7 +52,10 @@ internal class BingoLobbyCommand(
     }
 
     init {
-        if (environment.envType == IModEnvironment.EnvType.SERVER && !config.server.isLobbyMode) {
+        // only offer this when lobby mode is not already enabled *for this save* - the request is
+        // world-bound, so another world having lobby mode must not hide the command here
+        val isLobbyModeForThisWorld = LobbyModeTarget.isLobbyModeFor(config.server, serverProps.levelName)
+        if (environment.envType == IModEnvironment.EnvType.SERVER && !isLobbyModeForThisWorld) {
             commandManager.register("bingo") {
                 literal("lobby") {
                     requires {

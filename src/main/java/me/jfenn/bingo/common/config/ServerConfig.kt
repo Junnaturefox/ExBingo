@@ -5,6 +5,15 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ServerConfig(
     var isLobbyMode: Boolean = false,
+    /**
+     * The save (`level-name`) the [isLobbyMode] request applies to.
+     *
+     * Lobby mode is provided by a datapack inside the save folder, so it is a property of a single
+     * save — but this request has to live in the global server config. Binding it to a save name
+     * keeps enabling lobby mode in one world from silently enabling it in every other world.
+     * `null` means "not bound yet" (configs written before this field existed).
+     */
+    var isLobbyModeWorld: String? = null,
     val preloadViewDistance: Int = 4,
     val performanceCleanup: PerformanceCleanupConfig = PerformanceCleanupConfig(),
     val filesToReset: List<String> = listOf(

@@ -59,6 +59,7 @@ object NeoForgeConfigBridge {
 
     val intentionallyJsonOnlyConfigPaths: Map<String, String> = mapOf(
         "version" to "Internal migration marker; it is managed by MigrationHandler.",
+        "server.isLobbyModeWorld" to "Save binding for server.isLobbyMode; written by /bingo lobby confirm and consumed at startup, so it must not be editable from the config screen.",
         "server.performanceCleanup.enabled" to "Long-game cleanup is an operational server tuning knob kept in config/exbingo/config.json.",
         "server.performanceCleanup.intervalTicks" to "Long-game cleanup is an operational server tuning knob kept in config/exbingo/config.json.",
         "server.performanceCleanup.minTotalEntities" to "Long-game cleanup is an operational server tuning knob kept in config/exbingo/config.json.",
@@ -912,6 +913,9 @@ object NeoForgeConfigBridge {
                 statsHostId = UUID.fromString(statsHostId.get()),
                 server = ServerConfig(
                     isLobbyMode = serverIsLobbyMode.get(),
+                    // JSON-only field: the TOML has no entry for it, so it must be carried over
+                    // explicitly or applying the spec would drop the save binding.
+                    isLobbyModeWorld = config.server.isLobbyModeWorld,
                     preloadViewDistance = serverPreloadViewDistance.get(),
                     filesToReset = serverFilesToReset.get().toList(),
                     defaultPlayerSettings = PlayerSettings(

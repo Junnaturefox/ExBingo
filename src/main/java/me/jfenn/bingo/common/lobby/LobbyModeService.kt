@@ -2,6 +2,7 @@ package me.jfenn.bingo.common.lobby
 
 import me.jfenn.bingo.common.Permission
 import me.jfenn.bingo.common.config.ConfigService
+import me.jfenn.bingo.common.datapack.ServerProps
 import me.jfenn.bingo.common.lobby.BingoLobbyCommand.Companion.CONFIRM_COMMAND
 import me.jfenn.bingo.common.lobby.BingoLobbyCommand.Companion.LOBBY_COMMAND
 import me.jfenn.bingo.common.text.TextProvider
@@ -19,6 +20,7 @@ internal class LobbyModeService(
     private val server: MinecraftServer,
     private val permissions: IPermissionsApi,
     private val configService: ConfigService,
+    private val serverProps: ServerProps,
     private val text: TextProvider,
     private val log: Logger,
 ) {
@@ -62,7 +64,10 @@ internal class LobbyModeService(
             log.info("[BingoLobbyCommand] $playerName used '$CONFIRM_COMMAND' and has accepted the warnings.")
 
             configService.writeConfig(configService.config.apply {
+                // lobby mode is a property of this save, so remember which one was asked for;
+                // otherwise the request would be applied to every world the server loads next
                 server.isLobbyMode = true
+                server.isLobbyModeWorld = serverProps.levelName
             })
             server.halt(false)
         } else {
