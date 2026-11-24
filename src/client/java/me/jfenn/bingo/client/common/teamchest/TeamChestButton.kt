@@ -21,7 +21,7 @@ import net.minecraft.world.item.Items
 internal class TeamChestButton(
     x: Int,
     y: Int,
-    private val onPress: () -> Unit,
+    private val clickAction: () -> Unit,
 ) : AbstractButton(
     x,
     y,
@@ -35,8 +35,13 @@ internal class TeamChestButton(
         guiGraphics.renderItem(icon, x + ICON_OFFSET_X, y + ICON_OFFSET_Y)
     }
 
+    /**
+     * Note: the action is deliberately *not* called `onPress` - naming it like the overridden
+     * method makes `onPress()` inside this body resolve to the method itself (infinite recursion,
+     * which crashed the client with a StackOverflowError on the first click).
+     */
     override fun onPress() {
-        onPress()
+        clickAction()
     }
 
     override fun updateWidgetNarration(narrationElementOutput: NarrationElementOutput) {
