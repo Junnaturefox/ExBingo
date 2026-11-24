@@ -20,6 +20,7 @@ import me.jfenn.bingo.client.common.sound.ScorePacketReceiver
 import me.jfenn.bingo.client.common.sound.SoundService
 import me.jfenn.bingo.client.common.state.BingoHudState
 import me.jfenn.bingo.client.common.stats.ClientStatsSyncController
+import me.jfenn.bingo.client.common.teamchest.TeamChestInventoryButtonController
 import me.jfenn.bingo.client.common.teamchest.TeamChestKeybindController
 import me.jfenn.bingo.client.common.world.BingoWorldManager
 import me.jfenn.bingo.client.integrations.JeiIntegration
@@ -64,6 +65,7 @@ val commonClientModule = module {
     singleOf(::ClientStatsSyncController) withOptions { createdAtStart() }
 
     singleOf(::BingoWorldManager) withOptions { createdAtStart() }
+    singleOf(::TeamChestInventoryButtonController) withOptions { createdAtStart() }
     singleOf(::CompassHudCompat) withOptions { createdAtStart() }
     singleOf(::SimpleVoiceChatHudCompat) withOptions { createdAtStart() }
 

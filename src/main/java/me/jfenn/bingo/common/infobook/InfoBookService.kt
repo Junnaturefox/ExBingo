@@ -154,6 +154,7 @@ internal class InfoBookService(
                 commandLink("/tc"),
             )
         )
+        add(text.string(StringKey.IntroTeamFeaturesChestButton).formatted(ChatFormatting.GRAY))
         add(
             text.string(
                 StringKey.IntroTeamFeaturesChestKey,
