@@ -30,6 +30,51 @@ Each release should include:
 
 ——————
 
+## 1.1.3 - 2026-11-25
+
+- Minecraft: 1.21.1
+- Mod Loader: NeoForge 21.1.234
+- License: LGPL-3.0-only
+- Release Type: Feature update
+
+### 中文更新日志
+
+#### 新增内容
+
+- 生存模式物品栏新增「团队箱子」按钮：紧邻原版配方书按钮、与之同尺寸（20×18），点一下等同于输入 `/tc`，方便不熟悉指令的玩家。按钮图标直接使用客户端里真实的铜箱子物品（安装了 Vanilla Backport 时），未安装该模组时退回原版箱子图标。按钮只在对局进行中、且服务端未关闭队伍箱时出现，打开配方书导致界面横移时会跟随移动。
+- 教程书「队伍功能」页补充提示：也可以点击物品栏里配方书旁边的铜箱子按钮打开队伍箱。
+
+#### 修复内容
+
+- 修复教程书内容显示不全的问题。书页每页最多渲染 14 行，超出部分会被静默丢弃，此前「玩家设置」等章节因此被截断；现在章节会按估算行数自动分页，可点击的指令链接等格式完整保留。
+- 修复点击「团队箱子」按钮导致客户端崩溃的问题。
+- 修复单人游戏中某个存档启用过 lobby 模式后，其他存档也会变成 lobby 模式的问题。此前创建任意世界都会把 bingo 数据包复制进该存档，而游戏会自动启用存档目录中的数据包，导致普通存档下次进入时变成 lobby 世界。现在只有通过 BINGO 按钮创建的世界才会装入该数据包；同时客户端启动时会自动把普通存档里误装的 `bingo.zip` 改名为 `bingo.zip.disabled`（不删除，如需恢复改回原名即可），使已受影响的存档恢复正常。
+- 修复专用服务器上为某个存档启用 lobby 模式后，切换到其他存档也会沿用 lobby 模式的问题。启用请求现在与具体存档绑定，只对目标存档安装或移除数据包，不再影响其他存档。
+
+#### 调整内容
+
+- 团队箱子按钮的按钮底图改为玩家重绘版本，按钮外观与配方书按钮保持一致。
+
+### English Changelog
+
+#### Added
+
+- Added a "Team Chest" button to the survival inventory, right next to the vanilla recipe book button and the same size as it (20×18). Clicking it is the same as typing `/tc`, which helps players who do not know the command. The icon is the real copper chest item from the client (when Vanilla Backport is installed) and falls back to the vanilla chest otherwise. The button only appears during a running round while the team chest is enabled on the server, and it follows the inventory when the recipe book panel shifts the screen.
+- The "Team Tools" page of the in-game tutorial book now mentions that the team chest can also be opened with the copper chest button next to the recipe book.
+
+#### Fixed
+
+- Fixed tutorial book pages being cut off. A book page renders at most 14 wrapped lines and silently drops the rest, which truncated sections such as "Player Settings"; sections are now paginated automatically, keeping clickable command links intact.
+- Fixed a client crash caused by clicking the "Team Chest" button.
+- Fixed lobby mode leaking between singleplayer saves. Creating any world used to copy the bingo datapack into that world, and the game automatically enables datapacks found in a world folder, so ordinary worlds turned into lobby worlds on their next visit. The datapack is now only installed for worlds created from the BINGO button, and on client startup a stray `bingo.zip` in an ordinary world is renamed to `bingo.zip.disabled` (never deleted, rename it back to restore it), which repairs worlds that were already affected.
+- Fixed lobby mode being reused by other saves on a dedicated server. The enable request is now bound to the save it was made for and only installs or removes the datapack for that save.
+
+#### Changed
+
+- The team chest button now uses a player-redrawn button background, so it matches the recipe book button.
+
+——————
+
 ## 1.1.2 - 2026-11-23
 
 - Minecraft: 1.21.1
