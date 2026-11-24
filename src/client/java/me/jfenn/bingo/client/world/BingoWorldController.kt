@@ -83,22 +83,16 @@ class BingoWorldController(
                 return@addListener
             }
 
-            if (screen is CreateWorldScreen && (state == ScreenState.CreateBingoWorld || state == null)) {
-                // Copy the built-in lobby data pack to the world creator's temp dir
-                // - we want this to happen on every world creation, so that the pack is available
-                //   even if the user has not specifically pressed the "BINGO!" button.
+            if (screen is CreateWorldScreen && state == ScreenState.CreateBingoWorld) {
+                // Copy the built-in lobby data pack to the world creator's temp dir.
+                //
+                // This must only happen for BINGO worlds. Vanilla automatically enables every
+                // datapack it finds in a world folder (MinecraftServer.configurePackRepository:
+                // "Found new data pack {}, loading it automatically"), so copying the pack into a
+                // plain world's datapacks folder silently turned that world into a lobby world.
                 screen.accessor.invokeGetDataPackTempDir()?.let {
                     lobbyWorldService.copyDataPack(it.resolve(DATAPACK_FILE))
                 }
-
-                // For a plain (non-BINGO) world creation we're done after copying the pack.
-                // We must NOT apply the data pack config here: tryApplyNewDataPacks below sees
-                // no actual change to the selected packs, so it synchronously calls
-                // CreateWorldScreen.setScreen(this), which re-runs init() while the screen's
-                // `initialized` flag is still false (we are inside ScreenEvent.Init.Post). That
-                // re-adds every widget on top of the existing ones - producing the duplicated
-                // tab navigation bar / overlapping screen.
-                if (state != ScreenState.CreateBingoWorld) return@addListener
 
                 val pair = screen.accessor.invokeGetDataPackSelectionSettings(screen.uiState.settings.dataConfiguration())
                     ?: return@addListener

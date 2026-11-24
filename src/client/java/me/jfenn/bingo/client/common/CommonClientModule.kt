@@ -30,6 +30,7 @@ import me.jfenn.bingo.client.integrations.jei.IJeiApiFactory
 import me.jfenn.bingo.client.integrations.xaero.XaeroCacheCleanupState
 import me.jfenn.bingo.client.integrations.xaero.XaeroCacheCleaner
 import me.jfenn.bingo.client.integrations.xaero.XaeroMapResetter
+import me.jfenn.bingo.client.world.StrayBingoDatapackCleaner
 import org.koin.core.module.dsl.createdAtStart
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
@@ -69,6 +70,9 @@ val commonClientModule = module {
     singleOf(::XaeroCacheCleanupState) withOptions { createdAtStart() }
     singleOf(::XaeroCacheCleaner) withOptions { createdAtStart() }
     singleOf(::XaeroMapResetter) withOptions { createdAtStart() }
+
+    // neutralizes lobby datapacks that older versions dropped into plain singleplayer saves
+    singleOf(::StrayBingoDatapackCleaner) withOptions { createdAtStart() }
 
 
     singleOf(::ClientSettingsService)
