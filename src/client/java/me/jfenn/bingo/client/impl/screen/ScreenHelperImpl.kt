@@ -41,6 +41,16 @@ open class ScreenHelperImpl(
         }
     }
 
+    override fun addWidget(widget: GuiEventListener) {
+        val mutableScreen = screen as? ScreenImpl
+        if (mutableScreen != null && widget is Renderable) {
+            mutableScreen.bingoAddDrawableChild(widget)
+        } else {
+            // vanilla screens: NeoForge's ScreenEvent.Init listener set renders Renderable entries too
+            addListener?.invoke(widget)
+        }
+    }
+
     override fun close() {
         screen.onClose()
     }

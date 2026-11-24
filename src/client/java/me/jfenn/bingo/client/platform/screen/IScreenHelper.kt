@@ -2,6 +2,7 @@ package me.jfenn.bingo.client.platform.screen
 
 import me.jfenn.bingo.client.platform.renderer.IDrawService
 import net.minecraft.client.gui.components.Renderable
+import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.screens.Screen
 import org.joml.Vector2i
 
@@ -11,6 +12,9 @@ interface IScreenHelper {
     val height: Int
     fun onAfterLeftClick(callback: (Vector2i) -> Unit)
     fun addButton(button: IButton)
+
+    /** Adds a raw widget (rendered and clickable) to the screen, for cases [IButton] cannot express. */
+    fun addWidget(widget: GuiEventListener)
     fun close()
 }
 

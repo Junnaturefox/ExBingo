@@ -5,21 +5,16 @@ import me.jfenn.bingo.client.common.state.BingoHudState
 import me.jfenn.bingo.client.platform.IClient
 import me.jfenn.bingo.client.platform.event.model.ClientTickEvent
 import me.jfenn.bingo.client.platform.event.model.ScreenEvent
-import me.jfenn.bingo.client.platform.screen.IButton
-import me.jfenn.bingo.client.platform.screen.IButtonFactory
 import me.jfenn.bingo.common.scope.BingoComponent
-import me.jfenn.bingo.common.text.TextProvider
-import me.jfenn.bingo.generated.StringKey
 import me.jfenn.bingo.platform.event.IEventBus
 import net.minecraft.client.gui.screens.inventory.InventoryScreen
-import org.joml.Vector2i
 
 /**
  * Adds a team chest button to the survival inventory, next to the vanilla recipe book button.
  *
  * Opening the team chest used to require typing `/tc`, which is awkward for players who do not know
- * the command. The button is the same size as the recipe book button, uses a copper chest icon, and
- * simply sends the team chest command when pressed - exactly what typing it would do.
+ * the command. The button is the same size as the recipe book button, shows the copper chest icon,
+ * and simply sends the team chest command when pressed - exactly what typing it would do.
  *
  * It is only added while a round is running ([BingoHudState.gameStatus]) and while the server has the
  * team chest enabled, so a normal inventory looks untouched outside of a game. The position is
@@ -29,12 +24,10 @@ import org.joml.Vector2i
 internal class TeamChestInventoryButtonController(
     private val client: IClient,
     eventBus: IEventBus,
-    private val buttonFactory: IButtonFactory,
     private val state: BingoHudState,
-    private val text: TextProvider,
 ) : BingoComponent() {
 
-    private var button: IButton? = null
+    private var button: TeamChestButton? = null
     private var inventory: InventoryScreen? = null
 
     init {
@@ -44,17 +37,10 @@ internal class TeamChestInventoryButtonController(
 
             if (!shouldShowButton()) return@register
 
-            val newButton = buttonFactory.createButton(
-                x = 0,
-                y = 0,
-                width = TeamChestButtonLayout.WIDTH,
-                height = TeamChestButtonLayout.HEIGHT,
-                texture = TEXTURE,
-                focusedTexture = TEXTURE_FOCUSED,
-                onClick = { client.player.sendCommand(TEAM_CHEST_COMMAND) },
-                message = text.string(StringKey.TeamchestButton),
-            )
-            event.screen.addButton(newButton)
+            val newButton = TeamChestButton(x = 0, y = 0) {
+                client.player.sendCommand(TEAM_CHEST_COMMAND)
+            }
+            event.screen.addWidget(newButton)
 
             button = newButton
             inventory = screen
@@ -85,10 +71,8 @@ internal class TeamChestInventoryButtonController(
 
     private fun updatePosition(screen: InventoryScreen) {
         val button = button ?: return
-        button.position = Vector2i(
-            TeamChestButtonLayout.x(screen.guiLeft),
-            TeamChestButtonLayout.y(screen.guiTop),
-        )
+        button.x = TeamChestButtonLayout.x(screen.guiLeft)
+        button.y = TeamChestButtonLayout.y(screen.guiTop)
     }
 
     private fun clear() {
@@ -97,9 +81,6 @@ internal class TeamChestInventoryButtonController(
     }
 
     private companion object {
-        const val TEXTURE = "minecraft:bingo/team_chest"
-        const val TEXTURE_FOCUSED = "minecraft:bingo/team_chest_highlighted"
-
         /** same command the team chest keybind sends; `/tc` is registered as an alias of it */
         const val TEAM_CHEST_COMMAND = "teamchest"
     }
