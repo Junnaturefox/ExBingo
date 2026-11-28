@@ -25,6 +25,7 @@ ExBingo 是 [Yet Another Bingo](https://modrinth.com/mod/yet-another-minecraft-b
 - **客户端 HUD**：安装本模组后可在客户端显示 Bingo 卡片、消息与队伍进度。
 - **自动分级（autotier）**：按获取难度为未分类内容生成难度表，不改动原版内容或已分配的内容。
 - **对局统计**：历史对局、最佳用时、连胜等，默认存于 `config/exbingo/bingo.db`（SQLite，可换外部数据库）。
+- **赛后备战与投票**：大厅模式下结算界面可「准备下一轮」或直接开始下一轮；备战倒计时期间可投票选择**下一轮**或**返回大厅**，倒计时结束时按多数票执行。
 - **长对局性能维护**：实体数超过阈值后定期清理远离玩家的掉落物、投射物与普通生物，保留玩家、坐骑、命名/持久/无敌实体与受保护命名空间。
 
 ### 内置棋盘
@@ -32,9 +33,9 @@ ExBingo 是 [Yet Another Bingo](https://modrinth.com/mod/yet-another-minecraft-b
 | 棋盘 ID | 名称 | 说明 |
 |---|---|---|
 | `items` | Items | 物品收集，通用 |
-| `in_overworld` | Overworld | 主世界可获得的内容 |
 | `advancements` | Advancements | 进度类目标 |
 | `simplified` | Simplified | 精简目标集 |
+| `challenge` | Challenge | 挑战类目标集（成组收集等） |
 
 此外还有若干**过滤器**（不是独立棋盘）：`everything`、`uncategorized`、`unobtainable` 等，以及 `in_the_nether` / `in_the_end` 等标签集合，可在 `/bingo filter` 中使用。
 
@@ -88,6 +89,8 @@ OP 可以关闭不想用的棋盘：
 | `/bingo end` | 结束当前对局（仅对局进行中可用） |
 | `/bingo reset` | 重置对局与大厅状态（**仅大厅模式**，对局中或结算后可用） |
 | `/bingo resume` | 恢复可继续的对局（**仅大厅模式**） |
+| `/bingo nextround` | 结算后重置并直接开始下一轮（**仅大厅模式**，需有玩家在线） |
+| `/bingo world seed`、`/bingo world seed <种子>`、`/bingo world seed random` | 查看 / 设置下一轮重置使用的世界种子（跨重启保留；`random` 恢复每轮随机） |
 | `/bingo book` | 获取教程书 |
 | `/bingo lobby`、`/bingo lobby confirm` | 切换到大厅模式（需确认） |
 | `/bingo shuffleteams <队伍数>` | 赛前随机分队 |
@@ -99,7 +102,7 @@ OP 可以关闭不想用的棋盘：
 | `/bingo options end_when <never\|first_win\|teams_win\|all_win>` | 结束条件 |
 | `/bingo options pvp [enabled]`、`elytra [enabled]`、`night_vision [enabled]` | 开关类规则 |
 | `/bingo options spawn_distance <距离>`、`spawn_dimension <维度>` | 出生点设置 |
-| `play_to cards <数量>`、`play_to infinite_cards`、`play_to replace_goals` | 卡牌数量与进度规则 |
+| `/bingo options play_to cards <数量>`、`play_to infinite_cards`、`play_to replace_goals` | 卡牌数量与进度规则 |
 | `/bingo options preview_card` | 预览棋盘 |
 | `/bingo card` | 查看棋盘 |
 | `/bingo card set <格子> <目标>`、`... random`、`... free_space` | 逐格改目标（`b1`/`i3`/`o5` 坐标） |
@@ -113,11 +116,12 @@ OP 可以关闭不想用的棋盘：
 | `/bingostats`、`/bingostats <玩家>`、`/bingostats reset player\|game\|all` | 统计数据查看与重置 |
 | `/bingoprefs <偏好> [true\|false]` | 玩家个人偏好（HUD、计分板、提示消息等） |
 | `/join <队伍>`、`/join spectators`、`/join <队伍> <玩家>` | 加入队伍 / 旁观 |
-| `/ready`、`/ready cancel` | 准备与取消准备 |
+| `/ready`、`/ready cancel` | 准备 / 取消准备；结算后 `/ready` 作为「开始下一轮」投票 |
 | `/spectator` | 切换旁观者模式（仅结算后） |
 | `/teamchest`、`/tc` | 打开队伍共享箱 |
 | `/teamtp <玩家>`、`/ttp <玩家>` | 传送到同队玩家 |
 | `/tptoggle`、`/teamchest toggle`、`/teamchest count` | OP 在对局开始前切换相关功能 |
+| `/teamchest teamrequest accept <申请人> <队伍>` | 同意旁观者的入队申请（申请人 UUID 由申请界面给出） |
 | `/coords`、`/coords <说明>`、`/coords list` | 与队友共享坐标 |
 
 ## 按键
@@ -193,6 +197,7 @@ ExBingo is a **NeoForge 1.21.1** port of [Yet Another Bingo](https://modrinth.co
 - **Client HUD**: optional client-side Bingo card, messages, and team progress display.
 - **Auto tiering**: generates a tier list for uncategorized content by obtain difficulty; vanilla content and already-assigned content are never touched.
 - **Statistics**: game history, best times, win streaks. Stored in `config/exbingo/bingo.db` (SQLite) by default; external databases are supported.
+- **Post-game ready & voting**: in lobby mode the results screen can ready up for the next round or start it immediately; while the ready countdown runs, players vote for **next round** or **return to lobby**, and the majority wins.
 - **Long-game performance maintenance**: once the entity count passes a threshold, distant drops, projectiles, and ordinary mobs are cleaned up periodically; players, mounts, named/persistent/invulnerable entities, and protected namespaces are kept.
 
 ### Built-in boards
@@ -200,9 +205,9 @@ ExBingo is a **NeoForge 1.21.1** port of [Yet Another Bingo](https://modrinth.co
 | Board ID | Name | Notes |
 |---|---|---|
 | `items` | Items | General item collection |
-| `in_overworld` | Overworld | Content obtainable in the overworld |
 | `advancements` | Advancements | Advancement objectives |
 | `simplified` | Simplified | A reduced objective set |
+| `challenge` | Challenge | Challenge objectives (grouped collections, etc.) |
 
 There are also **filters** (not boards): `everything`, `uncategorized`, `unobtainable`, plus tag sets such as `in_the_nether` / `in_the_end` for `/bingo filter`.
 
@@ -256,6 +261,8 @@ All `/bingo*` commands require configuration permission in `PREGAME` (or the sta
 | `/bingo end` | End the current round (only while running) |
 | `/bingo reset` | Reset the round and lobby state (**lobby mode only**, while playing or after results) |
 | `/bingo resume` | Resume a resumable round (**lobby mode only**) |
+| `/bingo nextround` | Reset and immediately start the next round (**lobby mode only**, requires players online) |
+| `/bingo world seed`, `/bingo world seed <seed>`, `/bingo world seed random` | Show/set the seed used by the next world reset (kept across restarts; `random` restores per-round randomization) |
 | `/bingo book` | Get the tutorial book |
 | `/bingo lobby`, `/bingo lobby confirm` | Switch to lobby mode (with confirmation) |
 | `/bingo shuffleteams <count>` | Randomly split teams before the round |
@@ -281,11 +288,12 @@ All `/bingo*` commands require configuration permission in `PREGAME` (or the sta
 | `/bingostats`, `/bingostats <player>`, `/bingostats reset player\|game\|all` | View and reset statistics |
 | `/bingoprefs <pref> [true\|false]` | Per-player preferences (HUD, scoreboard, notifications, ...) |
 | `/join <team>`, `/join spectators`, `/join <team> <player>` | Join a team / spectate |
-| `/ready`, `/ready cancel` | Ready check and cancel |
+| `/ready`, `/ready cancel` | Ready up / cancel; after results, `/ready` votes to start the next round |
 | `/spectator` | Toggle spectator mode (postgame only) |
 | `/teamchest`, `/tc` | Open the team chest |
 | `/teamtp <player>`, `/ttp <player>` | Teleport to a teammate |
 | `/tptoggle`, `/teamchest toggle`, `/teamchest count` | Operators toggle these features before a round starts |
+| `/teamchest teamrequest accept <requester> <team>` | Approve a spectator's join request (the requester UUID is provided by the request screen) |
 | `/coords`, `/coords <note>`, `/coords list` | Share coordinates with your team |
 
 ## Keybinds
