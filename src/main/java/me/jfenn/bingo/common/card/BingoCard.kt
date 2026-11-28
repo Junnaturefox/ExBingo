@@ -42,8 +42,8 @@ class BingoCard(
      * Throws if [x] or [y] arguments are not within 0..4
      */
     fun entry(x: Int, y: Int): BingoCardEntry {
-        assert(x in 0 until 5) { "x=$x is not within the required 0..4 range" }
-        assert(y in 0 until 5) { "y=$y is not within the required 0..4 range" }
+        require(x in 0 until 5) { "x=$x is not within the required 0..4 range" }
+        require(y in 0 until 5) { "y=$y is not within the required 0..4 range" }
 
         return entries[x + y * 5]
     }

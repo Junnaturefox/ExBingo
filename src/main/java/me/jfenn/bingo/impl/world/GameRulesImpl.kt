@@ -57,7 +57,8 @@ class GameRulesImpl(
     ) : IGameRule<Boolean> {
         override val name: String get() = key.id
         override var value: Boolean
-            get() = server.gameRules.getRule(key).get()
+        // read through getBoolean so the GameRuleOverrideMixin override path is respected
+        get() = server.gameRules.getBoolean(key)
             set(value) {
                 server.gameRules.getRule(key).set(value, server)
             }
@@ -68,7 +69,7 @@ class GameRulesImpl(
     ) : IGameRule<Int> {
         override val name: String get() = key.id
         override var value: Int
-            get() = server.gameRules.getRule(key).get()
+        get() = server.gameRules.getRule(key).get()
             set(value) {
                 server.gameRules.getRule(key).set(value, server)
             }

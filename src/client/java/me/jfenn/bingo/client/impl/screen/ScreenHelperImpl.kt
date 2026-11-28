@@ -6,6 +6,7 @@ import me.jfenn.bingo.client.platform.screen.IButton
 import me.jfenn.bingo.client.platform.screen.IDrawable
 import me.jfenn.bingo.client.platform.screen.IMutableScreenHelper
 import me.jfenn.bingo.client.platform.screen.IScreenHelper
+import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.components.Renderable
 import net.minecraft.client.gui.components.events.GuiEventListener
@@ -25,10 +26,10 @@ open class ScreenHelperImpl(
     override val height get() = screen.height
 
     override fun onAfterLeftClick(callback: (Vector2i) -> Unit) {
-        NeoForge.EVENT_BUS.addListener(ScreenEvent.MouseButtonPressed.Post::class.java) { event ->
-            if (event.screen == screen && event.button == GLFW.GLFW_MOUSE_BUTTON_LEFT)
-                callback(Vector2i(event.mouseX.toInt(), event.mouseY.toInt()))
-        }
+        // One shared listener instead of one per screen: NeoForge's bus has no automatic cleanup,
+        // and registering a fresh listener for every chat screen leaked one listener (plus the
+        // screen itself) per chat open.
+        ClickDispatcher.register(screen, callback)
     }
 
     override fun addButton(button: IButton) {
@@ -78,5 +79,36 @@ class MutableScreenHelperImpl(
 
     override fun clearChildren() {
         screenImpl.bingoClearChildren()
+    }
+}
+
+/**
+ * Dispatches [ScreenEvent.MouseButtonPressed.Post] to the registered per-screen callbacks.
+ *
+ * A single listener is installed for the process lifetime; callbacks for screens that are no
+ * longer active are dropped on each event (and their screens become collectable).
+ */
+private object ClickDispatcher {
+    private val callbacks = mutableMapOf<Screen, MutableList<(Vector2i) -> Unit>>()
+    private var registered = false
+
+    fun register(screen: Screen, callback: (Vector2i) -> Unit) {
+        synchronized(callbacks) {
+            callbacks.getOrPut(screen) { mutableListOf() } += callback
+        }
+        if (!registered) {
+            registered = true
+            NeoForge.EVENT_BUS.addListener(ScreenEvent.MouseButtonPressed.Post::class.java) { event ->
+                if (event.button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return@addListener
+                val active = Minecraft.getInstance().screen
+                val handlers = synchronized(callbacks) {
+                    callbacks.keys.removeIf { it !== active && it !== event.screen }
+                    callbacks[event.screen] ?: emptyList()
+                }
+                for (handler in handlers.toList()) {
+                    handler(Vector2i(event.mouseX.toInt(), event.mouseY.toInt()))
+                }
+            }
+        }
     }
 }

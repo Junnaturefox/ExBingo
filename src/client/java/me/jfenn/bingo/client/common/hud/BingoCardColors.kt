@@ -1,6 +1,7 @@
 package me.jfenn.bingo.client.common.hud
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import me.jfenn.bingo.common.map.Color
 import me.jfenn.bingo.common.team.BingoTeamKey
 import me.jfenn.bingo.common.utils.ColorType
@@ -52,7 +53,18 @@ internal data class BingoCardColors(
     private fun String.parseIdentifier(): ResourceLocation =
         ResourceLocation.fromNamespaceAndPath(substringBefore(':'), substringAfter(':'))!!
 
+    /** Cached per (teamKey, formatting): the card renderer calls this per tile per team per frame. */
+    @Transient
+    private val teamColorsCache = mutableMapOf<Pair<BingoTeamKey?, ChatFormatting?>, TeamColors>()
+
     fun getTeamColors(
+        teamKey: BingoTeamKey?,
+        formatting: ChatFormatting?,
+    ): TeamColors = teamColorsCache.getOrPut(teamKey to formatting) {
+        computeTeamColors(teamKey, formatting)
+    }
+
+    private fun computeTeamColors(
         teamKey: BingoTeamKey?,
         formatting: ChatFormatting?,
     ): TeamColors {

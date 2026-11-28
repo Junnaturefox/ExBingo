@@ -161,18 +161,27 @@ internal class GameOverController(
     }
 
     init {
-        events.onEnter(GameState.POSTGAME) {
+        events.onEnter(GameState.POSTGAME, requireChange = true) {
             val info = state.gameOverInfo ?: return@onEnter
             broadcastGameOver(info)
             sendGameOverPacket(info, isUpdate = false)
         }
 
+        // A restore on server start replays the POSTGAME state - don't re-announce the result
+        // then (players are re-sent the packet by onPlayerChannelRegister when they join).
+        events.onEnter(GameState.POSTGAME) {
+            if (state.endedAt == null) return@onEnter
+            val info = state.gameOverInfo ?: return@onEnter
+            sendGameOverPacket(info, isUpdate = true)
+        }
+
+        // Players are re-sent the result on channel register / reconnect, so resending the full
+        // ranking every update tick (10x/second) was wasteful; keep a slow safety net instead.
+        var resendTicks = 0
         events.onUpdateTick {
-            // If the game is currently over, keep sending the result to players
-            // (this prevents state loss if relogging / switching dimensions)
-            state.gameOverInfo?.let {
-                sendGameOverPacket(it, isUpdate = true)
-            }
+            val info = state.gameOverInfo ?: return@onUpdateTick
+            if (resendTicks++ % 10 != 0) return@onUpdateTick
+            sendGameOverPacket(info, isUpdate = true)
         }
 
         events.onPlayerChannelRegister {

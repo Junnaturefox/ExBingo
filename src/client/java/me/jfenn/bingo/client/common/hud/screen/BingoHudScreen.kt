@@ -220,7 +220,7 @@ internal class BingoHudScreen(
         button.onClick {
             // resets the round and starts it again without the intermediate lobby phase
             client.player.sendCommand(GameCommands.NEXT_ROUND_COMMAND)
-            if (client.isInSingleplayer && shouldPause()) {
+            if (shouldPause()) {
                 helper.close()
             }
         }
@@ -267,7 +267,7 @@ internal class BingoHudScreen(
     private fun sendReadyForNextRound() {
         packets.readySetV1.send(SetReadyPacket(true))
         // If the screen is paused, it must be closed so that the server can process the ready packet
-        if (client.isInSingleplayer && shouldPause()) {
+        if (shouldPause()) {
             helper.close()
         }
     }
@@ -344,8 +344,13 @@ internal class BingoHudScreen(
             if (state.ready?.canSendReady == true && votes.isNotEmpty()) {
                 val nextRoundVotes = votes[VoteType.NEXT_ROUND] ?: 0
                 val pregameVotes = votes[VoteType.PREGAME] ?: 0
-                voteNextRoundButton.message = text.string(StringKey.VoteNextRound).append(" ($nextRoundVotes)")
-                votePregameButton.message = text.string(StringKey.VoteReturnToLobby).append(" ($pregameVotes)")
+                val myVote = state.ready?.myVote
+                voteNextRoundButton.message = text.string(StringKey.VoteNextRound)
+                    .append(if (myVote == VoteType.NEXT_ROUND) " ✓" else "")
+                    .append(" ($nextRoundVotes)")
+                votePregameButton.message = text.string(StringKey.VoteReturnToLobby)
+                    .append(if (myVote == VoteType.PREGAME) " ✓" else "")
+                    .append(" ($pregameVotes)")
 
                 for (button in arrayOf(voteNextRoundButton, votePregameButton)) {
                     button.size = Vector2i(sidebarWidth - marginX * 2, 20)
@@ -594,8 +599,11 @@ internal class BingoHudScreen(
         return cardsWidget.mouseScrolled(mouseX, mouseY, amount) || super.mouseScrolled(mouseX, mouseY, amount)
     }
 
+    // NB: no isInSingleplayer condition here - the guards below close this screen before sending a
+    // command/ready packet, which is only necessary when the screen actually pauses the game. The
+    // previous `!client.isInSingleplayer && ...` made this method mutually exclusive with the
+    // `client.isInSingleplayer && shouldPause()` checks, so those never fired.
     override fun shouldPause() =
-        !client.isInSingleplayer &&
                 gameOver == null &&
                 config.client.cardPausesGame &&
                 state.cards.isNotEmpty() &&

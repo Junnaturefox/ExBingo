@@ -12,6 +12,20 @@ import org.koin.core.component.get
 object ItemDifficultyOverlayRenderer {
     private const val OVERLAY_Z = 180f
     private val itemDecorationContext = ThreadLocal<ItemDecorationContext?>()
+
+    /**
+     * Cached Koin lookup: this runs for every rendered item, and resolving the service through
+     * Koin on every call allocated a Result + closures in a very hot path.
+     */
+    @Volatile
+    private var cachedService: ItemDifficultyOverlayService? = null
+
+    private fun getService(): ItemDifficultyOverlayService? {
+        cachedService?.let { return it }
+        val service = runCatching { BingoKoin.koinApp.koin.get<ItemDifficultyOverlayService>() }.getOrNull()
+        cachedService = service
+        return service
+    }
     private val advancementContext = ThreadLocal<String?>()
 
     fun renderItemDecoration(guiGraphics: GuiGraphics, font: Font, stack: ItemStack, x: Int, y: Int) {

@@ -6,6 +6,7 @@ import me.jfenn.bingo.client.common.utils.Interpolate
 import me.jfenn.bingo.client.platform.renderer.IDrawService
 import me.jfenn.bingo.client.platform.renderer.use
 import me.jfenn.bingo.common.config.BingoConfig
+import me.jfenn.bingo.common.card.tierlist.TierLabel
 import me.jfenn.bingo.common.map.CardTile
 import me.jfenn.bingo.common.map.Color
 import me.jfenn.bingo.common.utils.milliseconds
@@ -27,6 +28,11 @@ internal class ClientCardBufferRenderer(
 
         val FRAME_LOCKED_ID = ResourceLocation.fromNamespaceAndPath("minecraft", "bingo/image_frame_locked")
         val IMAGE_HIDDEN_ID = ResourceLocation.fromNamespaceAndPath("minecraft", "bingo/image_hidden")
+
+        /** Pre-built per-tier hidden tile textures (built once instead of every frame per tile). */
+        val HIDDEN_IMAGE_IDS = TierLabel.entries.associateWith { tier ->
+            ResourceLocation.fromNamespaceAndPath("minecraft", "bingo/image_hidden_${tier.name.lowercase()}")
+        }
 
         val SHUFFLE_DURATION = 280.milliseconds
         val SHUFFLE_DURATION_PADDING = 50.milliseconds
@@ -128,7 +134,7 @@ internal class ClientCardBufferRenderer(
 
                 if (tile.isHidden) {
                     val texture = tile.itemTier
-                        ?.let { ResourceLocation.fromNamespaceAndPath("minecraft", "bingo/image_hidden_${it.name.lowercase()}")!! }
+                        ?.let { HIDDEN_IMAGE_IDS[it] }
                         ?: IMAGE_HIDDEN_ID
 
                     service.drawGuiTexture(

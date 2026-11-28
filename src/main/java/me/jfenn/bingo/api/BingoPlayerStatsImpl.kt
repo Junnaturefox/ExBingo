@@ -4,7 +4,7 @@ import me.jfenn.bingo.api.data.IBingoPlayerStats
 import me.jfenn.bingo.common.stats.data.PlayerStatsSummary
 import java.time.Duration
 
-class BingoPlayerStatsImpl(
+internal class BingoPlayerStatsImpl(
     val stats: PlayerStatsSummary,
 ): IBingoPlayerStats {
     override val totalPlaytime: Duration

@@ -190,8 +190,10 @@ sealed class BingoObjective {
             get() = super.conflictsWithObjectivesInternal + someOfObjectives
 
         override fun satisfiesDependencies(resolved: Set<String>): Boolean {
-            // SomeOfEntry will use the amount of resolved dependencies as the min value
-            return dependsOnObjectives.any { resolved.contains(it) }
+            // all_of objectives use this class too, and require every dependency to resolve; for
+            // some_of-style objectives the configured minimum is enough
+            val required = valueMin.coerceAtMost(someOfObjectives.size)
+            return someOfObjectives.count { resolved.contains(it) } >= required
         }
     }
 

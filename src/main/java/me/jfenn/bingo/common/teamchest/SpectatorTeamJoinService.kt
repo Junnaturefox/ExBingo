@@ -540,8 +540,14 @@ private class TeamSelectionMenu(
         }
     }
 
+    private var refreshCounter = 0
+
     override fun broadcastChanges() {
-        refreshItems()
+        // vanilla calls this every tick for open menus; rebuilding 27 stacks (and re-counting every
+        // team's online players twice) that often is unnecessary, so refresh only every 10 calls
+        if (refreshCounter++ % 10 == 0) {
+            refreshItems()
+        }
         super.broadcastChanges()
     }
 

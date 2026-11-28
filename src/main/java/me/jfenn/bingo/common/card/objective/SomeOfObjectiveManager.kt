@@ -97,7 +97,8 @@ internal class SomeOfObjectiveManager(
                 .flatMap { it.playersHolding.entries }
                 .groupBy { it.key }
 
-            val progressTotal = objective.valueMin.coerceIn(1, objectives.size).toFloat()
+        // objectives can be empty when every dependency failed to resolve - coerceIn(1, 0) throws
+        val progressTotal = objective.valueMin.coerceIn(1, objectives.size.coerceAtLeast(1)).toFloat()
 
             val teamsProgress = objectiveService.getPlayersByTeam(card)
                 .mapKeys { it.key.key }
