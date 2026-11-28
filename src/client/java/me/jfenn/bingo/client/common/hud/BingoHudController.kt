@@ -561,9 +561,6 @@ internal class BingoHudController(
         eventBus.register(packetEvents.cardDisplayV1, ::onCardDisplayV1)
         eventBus.register(packetEvents.cardDisplayV2, ::onCardDisplayV2)
 
-        eventBus.register(packetEvents.cardUpdateV2, ::onCardUpdate)
-        eventBus.register(packetEvents.cardUpdateV3, ::onCardUpdate)
-        eventBus.register(packetEvents.cardUpdateV4, ::onCardUpdate)
         eventBus.register(packetEvents.cardUpdateV5, ::onCardUpdate)
         eventBus.register(packetEvents.cardUpdateV6, ::onCardUpdate)
 

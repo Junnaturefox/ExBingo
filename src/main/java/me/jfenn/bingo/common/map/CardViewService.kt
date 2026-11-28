@@ -98,9 +98,6 @@ internal class CardViewService(
             packets.cardTilesV1.send(player, tilesPacket) -> {}
             packets.cardUpdateV6.send(player, updatePacket) -> {}
             packets.cardUpdateV5.send(player, updatePacket) -> {}
-            packets.cardUpdateV4.send(player, updatePacket) -> {}
-            packets.cardUpdateV3.send(player, updatePacket) -> {}
-            packets.cardUpdateV2.send(player, updatePacket) -> {}
         }
     }
 
