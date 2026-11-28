@@ -75,6 +75,13 @@ internal class GameService(
         ignoreWarnings: Boolean = false,
         allowSpectators: Boolean = false,
     ): Boolean {
+        // Starting with nobody online leaves the round stuck in its loading states, where no
+        // command can end or reset it afterwards. Refuse early with an actionable message.
+        if (playerManager.getPlayers().isEmpty()) {
+            warnings += text.string(StringKey.CommandStartNoPlayers)
+            return false
+        }
+
         val playersWithoutATeam = playerManager.getPlayers()
             // filter for players that have not chosen a team
             .filter { !teamService.isTeamChosen(it) }

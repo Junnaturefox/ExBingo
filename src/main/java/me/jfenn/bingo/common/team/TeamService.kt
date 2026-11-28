@@ -132,18 +132,29 @@ internal class TeamService(
             teams.add(temporaryTeam)
         }
 
+        // Every shuffled team must exist in the game state, even when nobody is online yet:
+        // teams used to be created only as a side effect of joinTeam(), so /bingo shuffleteams
+        // cleared the previous teams and then threw (chunked(0) on an empty player list),
+        // leaving the server with no teams at all.
+        teams.forEach { state.registerTeam(it) }
+
         val players = playerManager.getPlayers()
             .filter { !state.playersSpectatingIds.contains(it.uuid) }
-        val playersPerTeam = ceil(players.size / numTeams.coerceIn(1, teams.size).toDouble()).toInt()
 
-        players.shuffled()
-            .chunked(playersPerTeam)
-            .forEachIndexed { i, teamPlayers ->
-                val teamTemplate = teams[i % teams.size]
+        if (players.isNotEmpty()) {
+            val playersPerTeam = ceil(players.size / numTeams.coerceIn(1, teams.size).toDouble())
+                .toInt()
+                .coerceAtLeast(1)
 
-                for (teamPlayer in teamPlayers)
-                    joinTeam(teamPlayer, teamTemplate)
-            }
+            players.shuffled()
+                .chunked(playersPerTeam)
+                .forEachIndexed { i, teamPlayers ->
+                    val teamTemplate = teams[i % teams.size]
+
+                    for (teamPlayer in teamPlayers)
+                        joinTeam(teamPlayer, teamTemplate)
+                }
+        }
     }
 
     override fun clearTeams() {

@@ -86,13 +86,19 @@ class BingoPrefsCommand(
                         toggleBooleanSetting(playerOrThrow, field, string)
                     }
                 }
+            }
 
-                literal(getFieldName(PlayerSettings::hideLobbyPrompt)) {
-                    boolean("value") { newValue ->
-                        executes {
-                            changeBooleanSetting(playerOrThrow, PlayerSettings::hideLobbyPrompt, null, getArgument(newValue))
-                        }
+            // registered once (it used to be inside the loop above, which added the same literal
+            // seven times) and with the same toggle form as the settings above
+            literal(getFieldName(PlayerSettings::hideLobbyPrompt)) {
+                boolean("value") { newValue ->
+                    executes {
+                        changeBooleanSetting(playerOrThrow, PlayerSettings::hideLobbyPrompt, null, getArgument(newValue))
                     }
+                }
+
+                executes {
+                    toggleBooleanSetting(playerOrThrow, PlayerSettings::hideLobbyPrompt, StringKey.InstalledNeverShowAgain)
                 }
             }
         }

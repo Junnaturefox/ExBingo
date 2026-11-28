@@ -51,9 +51,9 @@ class JoinCommand(
                 error(text.string(StringKey.CommandJoinAlreadyOnTeam, existingTeam.getName(text)))
             }
 
-        val team = state.registerTeam(BingoTeam.fromPreset(teamKey, teamPreset))
-
         // If a player tries to /join during a game, and doesn't have COMMAND_JOIN_PLAYER
+        // - this must be rejected *before* the team is registered, otherwise a player without
+        //   permission could still create an empty team as a side effect
         if (state.state != GameState.PREGAME && !hasPermission(Permission.COMMAND_JOIN_PLAYER)) {
             sendMessage(
                 text.literal("⚠  ")
@@ -62,6 +62,8 @@ class JoinCommand(
             )
             return
         }
+
+        val team = state.registerTeam(BingoTeam.fromPreset(teamKey, teamPreset))
 
         val createSpawnpointFuture = when (state.state) {
             GameState.PREGAME -> CompletableFuture.completedFuture(null)

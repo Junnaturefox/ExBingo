@@ -15,7 +15,10 @@ class ReadyCommand(
     init {
         commandManager.register("ready") {
             requires {
-                scope.get<ReadyService>().isReadyEnabled(playerOrThrow)
+                // null-safe: console/command blocks used to throw here, which turned into
+                // "unknown command" plus an ERROR log entry instead of a normal rejection
+                val player = player
+                player != null && scope.get<ReadyService>().isReadyEnabled(player)
             }
             executes {
                 when (

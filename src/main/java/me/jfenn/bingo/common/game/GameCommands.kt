@@ -24,18 +24,22 @@ class GameCommands(
         scope.get<IExecutors.IServerTaskExecutor>().execute {
             // Start the game!
             val warnings = mutableListOf<IText>()
-            gameService.start(
+            val started = gameService.start(
                 warnings = warnings,
                 ignoreWarnings = ignoreWarnings,
                 allowSpectators = ignoreWarnings,
             )
 
+            // only report success when the game actually started - this used to always print
+            // "Starting the game..." even when start() refused (e.g. players without teams)
+            if (started) {
+                sendFeedback(text.string(StringKey.CommandStartSuccess))
+            }
+
             warnings.forEachIndexed { i, warning ->
                 sendMessage(text.formatWarning(warning, i == 0))
             }
         }
-
-        sendFeedback(text.string(StringKey.CommandStartSuccess))
     }
 
     init {

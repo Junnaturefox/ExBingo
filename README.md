@@ -74,7 +74,7 @@ OP 可以关闭不想用的棋盘：
 
 其他说明：
 
-- **权限**不依赖外部权限模组：使用内置权限节点（如 `bingo.command.reset`），默认值 `ALLOW` / `OPERATORS` / `DENY`，其中 `OPERATORS` = OP 权限等级 2（单人存档视为满足）。
+- **权限**不依赖外部权限模组：使用内置权限节点（如 `exbingo.command.reset`），默认值 `ALLOW` / `OPERATORS` / `DENY`，其中 `OPERATORS` = OP 权限等级 2（单人存档视为满足）。
 - 除上表外没有针对任何模组的专属补丁或硬编码兼容逻辑。
 
 ## 指令
@@ -86,8 +86,8 @@ OP 可以关闭不想用的棋盘：
 | `/bingo` | 显示当前对局选项摘要 |
 | `/bingo start`、`/bingo start ignore_warnings` | 开始对局（后者跳过数据包推荐人数等警告） |
 | `/bingo end` | 结束当前对局（仅对局进行中可用） |
-| `/bingo reset` | 重置对局与大厅状态（对局中或结算后可用） |
-| `/bingo resume` | 恢复可继续的对局 |
+| `/bingo reset` | 重置对局与大厅状态（**仅大厅模式**，对局中或结算后可用） |
+| `/bingo resume` | 恢复可继续的对局（**仅大厅模式**） |
 | `/bingo book` | 获取教程书 |
 | `/bingo lobby`、`/bingo lobby confirm` | 切换到大厅模式（需确认） |
 | `/bingo shuffleteams <队伍数>` | 赛前随机分队 |
@@ -99,9 +99,9 @@ OP 可以关闭不想用的棋盘：
 | `/bingo options end_when <never\|first_win\|teams_win\|all_win>` | 结束条件 |
 | `/bingo options pvp [enabled]`、`elytra [enabled]`、`night_vision [enabled]` | 开关类规则 |
 | `/bingo options spawn_distance <距离>`、`spawn_dimension <维度>` | 出生点设置 |
-| `/bingo options play_to <分数>`、`play_to cards <数量>`、`play_to infinite_cards`、`play_to replace_goals` | 卡牌数量与进度规则 |
+| `play_to cards <数量>`、`play_to infinite_cards`、`play_to replace_goals` | 卡牌数量与进度规则 |
 | `/bingo options preview_card` | 预览棋盘 |
-| `/bingo card`、`/bingo cards`、`/bingo card <id>` | 查看棋盘 |
+| `/bingo card` | 查看棋盘 |
 | `/bingo card set <格子> <目标>`、`... random`、`... free_space` | 逐格改目标（`b1`/`i3`/`o5` 坐标） |
 | `/bingo card seed [种子]`、`/bingo card stack [push\|pop]`、`/bingo card assign <队伍> <棋盘>` | 种子、多棋盘队列与分配 |
 | `/bingo reroll` | 重随当前棋盘 |
@@ -242,7 +242,7 @@ Only the following 4 mods are integrated with. All are **optional and degrade gr
 
 Also note:
 
-- **Permissions** do not require a permissions mod: built-in permission nodes (e.g. `bingo.command.reset`) with defaults `ALLOW` / `OPERATORS` / `DENY`, where `OPERATORS` means op level 2 (singleplayer counts as op).
+- **Permissions** do not require a permissions mod: built-in permission nodes (e.g. `exbingo.command.reset`) with defaults `ALLOW` / `OPERATORS` / `DENY`, where `OPERATORS` means op level 2 (singleplayer counts as op).
 - Other than the table above there are no mod-specific patches or hardcoded compatibility paths.
 
 ## Commands
@@ -254,8 +254,8 @@ All `/bingo*` commands require configuration permission in `PREGAME` (or the sta
 | `/bingo` | Print the current round options |
 | `/bingo start`, `/bingo start ignore_warnings` | Start a round (the latter skips datapack player-count warnings) |
 | `/bingo end` | End the current round (only while running) |
-| `/bingo reset` | Reset the round and lobby state (while playing or after results) |
-| `/bingo resume` | Resume a resumable round |
+| `/bingo reset` | Reset the round and lobby state (**lobby mode only**, while playing or after results) |
+| `/bingo resume` | Resume a resumable round (**lobby mode only**) |
 | `/bingo book` | Get the tutorial book |
 | `/bingo lobby`, `/bingo lobby confirm` | Switch to lobby mode (with confirmation) |
 | `/bingo shuffleteams <count>` | Randomly split teams before the round |
@@ -267,9 +267,9 @@ All `/bingo*` commands require configuration permission in `PREGAME` (or the sta
 | `/bingo options end_when <never\|first_win\|teams_win\|all_win>` | End conditions |
 | `/bingo options pvp [enabled]`, `elytra [enabled]`, `night_vision [enabled]` | Toggle rules |
 | `/bingo options spawn_distance <distance>`, `spawn_dimension <dimension>` | Spawn settings |
-| `/bingo options play_to <score>`, `play_to cards <count>`, `play_to infinite_cards`, `play_to replace_goals` | Card count and progress rules |
+| `/bingo options play_to cards <count>`, `play_to infinite_cards`, `play_to replace_goals` | Card count and progress rules |
 | `/bingo options preview_card` | Preview the card |
-| `/bingo card`, `/bingo cards`, `/bingo card <id>` | Inspect the card |
+| `/bingo card` | Inspect the card |
 | `/bingo card set <tile> <objective>`, `... random`, `... free_space` | Set a single tile (`b1`/`i3`/`o5`) |
 | `/bingo card seed [seed]`, `/bingo card stack [push\|pop]`, `/bingo card assign <team> <card>` | Seed, card queue, and assignment |
 | `/bingo reroll` | Reroll the current card |

@@ -380,8 +380,9 @@ fun Koin.commonInit() {
 
     get<BingoCommand>()
     get<BingoCardCommand>()
-    if (Build.isDebug)
-        get<BingoDebugCommand>()
+    // always registered: the command itself is gated behind the OP-only exbingo.command.debug
+    // permission, and it is documented as available for bug reports
+    get<BingoDebugCommand>()
     get<BingoLobbyCommand>()
     get<BingoOptionsCommands>()
     get<BingoPrefsCommand>()

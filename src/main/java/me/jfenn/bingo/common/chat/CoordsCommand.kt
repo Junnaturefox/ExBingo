@@ -98,9 +98,12 @@ class CoordsCommand(
         // send current player coordinates to other team members
         commandManager.register("coords") {
             requires {
-                hasState(GameState.PLAYING, GameState.POSTGAME)
-                        && hasPermission(Permission.COMMAND_COORDS)
-                        && scope.get<TeamService>().isPlaying(playerOrThrow)
+                // null-safe: console/command blocks used to throw here (ERROR log + "unknown command")
+                val player = player
+                player != null &&
+                    hasState(GameState.PLAYING, GameState.POSTGAME) &&
+                    hasPermission(Permission.COMMAND_COORDS) &&
+                    scope.get<TeamService>().isPlaying(player)
             }
 
             literal("list") {
@@ -113,8 +116,17 @@ class CoordsCommand(
                 executes {
                     val player = playerOrThrow
                     val team = teamOrThrow
-                    getArgument(message).thenAccept {
-                        storeCoordinates(player, team, it)
+                    getArgument(message).thenAccept { signed ->
+                        // the future completes asynchronously, so failures here cannot be reported
+                        // by throwing - they used to be swallowed entirely
+                        try {
+                            storeCoordinates(player, team, signed)
+                        } catch (e: Throwable) {
+                            player.sendMessage(
+                                scope.get<TextProvider>().literal(e.message ?: "Unable to store coordinates")
+                                    .formatted(ChatFormatting.RED)
+                            )
+                        }
                     }
                 }
             }

@@ -59,7 +59,8 @@ internal class BingoLobbyCommand(
             commandManager.register("bingo") {
                 literal("lobby") {
                     requires {
-                        isConsole || lobbyModeService.canUseLobbyCommand(playerOrThrow)
+                        // null-safe: console is allowed, command blocks are not
+                        isConsole || (player?.let { lobbyModeService.canUseLobbyCommand(it) } ?: false)
                     }
                     executes {
                         val isDialog = player?.let { createLobbyDialog(it) }

@@ -64,6 +64,7 @@
   "bingo.command.start.join_a_team": "请先加入某个队伍！",
   "bingo.command.start.join_a_team_message": "使用 “%s” 命令或点击一个队伍来加入！",
   "bingo.command.start.lockout_with_lines_goal": "抢夺模式已启用，但棋盘目标为“%s” - 这可能会导致僵局。你可能想要：",
+  "bingo.command.start.no_players": "当前没有玩家在线，请等有玩家加入后再开始游戏。",
   "bingo.command.start.players_missing_teams": "有些玩家还没有选择队伍！（%s）",
   "bingo.command.start.players_missing_teams_hint": "运行命令 “%s” 来分配队伍。使用 “%s” 或潜行键/Shift键 + 鼠标左键以忽略此消息。",
   "bingo.command.start.success": "正在开始游戏...",
