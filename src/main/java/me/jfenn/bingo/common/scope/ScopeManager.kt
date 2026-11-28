@@ -12,6 +12,7 @@ import me.jfenn.bingo.common.event.model.StateChangedEvent
 import me.jfenn.bingo.common.lobbyWorld
 import me.jfenn.bingo.common.options.BingoOptions
 import me.jfenn.bingo.common.state.BingoState
+import me.jfenn.bingo.common.state.isInterruptedLobbyReset
 import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.common.state.ResetPersistentStates
 import me.jfenn.bingo.platform.IPersistentStateManager
@@ -65,7 +66,7 @@ class ScopeManager(
             scope.commonInit()
 
             // re-run state entry listeners
-            val isBrokenPostgameSave = state.isBrokenPostgameResetSave()
+            val isBrokenPostgameSave = state.isInterruptedLobbyReset()
             if (isBrokenPostgameSave) {
                 log.warn("[ScopeManager] Detected a half-reset POSTGAME save; rebuilding it as a fresh PREGAME lobby.")
                 state.reset()
@@ -122,13 +123,3 @@ internal fun BingoState.copyPregameOptionsFrom(configOptions: BingoOptions) {
     cards.clear()
 }
 
-internal fun BingoState.isBrokenPostgameResetSave(): Boolean {
-    return isLobbyMode &&
-        // STARTING_NEXT_ROUND is only held briefly between the reset and the next start; if the
-        // process stops in it, no command accepts that state, so it is recovered here the same way
-        // as a half-reset POSTGAME save.
-        (state == GameState.POSTGAME || state == GameState.STARTING_NEXT_ROUND) &&
-        cards.isEmpty() &&
-        teams.isEmpty() &&
-        players.isEmpty()
-}
