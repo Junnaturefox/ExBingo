@@ -83,6 +83,19 @@ class PlayerManager(
         )
 
         server.playerList.load(player)
+
+        // Constructing a ServerPlayer registers a PlayerAdvancements entry in the vanilla
+        // PlayerList map; nothing would ever remove it for this fake player, so drop it here
+        // (the player object itself is unaffected and keeps working for the offline queries).
+        runCatching {
+            (server.playerList as me.jfenn.bingo.mixin.PlayerListAdvancementsAccessor)
+                .advancements
+                .remove(profile.uuid)
+        }.onFailure {
+            org.slf4j.LoggerFactory.getLogger("ExBingo")
+                .error("[PlayerManager] Unable to remove the offline player's advancement entry:", it)
+        }
+
         return PlayerHandle(player, itemStackFactory)
     }
 

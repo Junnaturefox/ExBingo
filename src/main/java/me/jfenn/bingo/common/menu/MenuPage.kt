@@ -80,13 +80,15 @@ private fun createRootPage(
         text = text.string(StringKey.OptionsStart),
         brightness = MENU_BRIGHTNESS_ALT,
     ) { player ->
-        // Start the game!
-        optionsService.broadcastHotbarMessage(player, text.string(StringKey.CommandStartSuccess))
+        // Start the game! (only report success when it actually started)
         val warnings = mutableListOf<IText>()
-        gameService.start(
+        val started = gameService.start(
             warnings = warnings,
             allowSpectators = player.isSneaking,
         )
+        if (started) {
+            optionsService.broadcastHotbarMessage(player, text.string(StringKey.CommandStartSuccess))
+        }
         warnings.forEachIndexed { i, warning ->
             player.sendMessage(text.formatWarning(warning, i == 0))
         }

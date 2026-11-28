@@ -41,6 +41,7 @@
   "bingo.command.join.success": "Moved player %s onto team %s!",
   "bingo.command.join.already_on_team": "The player is already on team %s!",
     "bingo.command.join.no_permission": "You do not have permission to join a team.",
+    "bingo.command.team_request.invalid_uuid": "That is not a valid player UUID.",
   "bingo.command.join.does_not_exist": "Team '%s' does not exist!",
   "bingo.command.lobby.must_run": "Error: You must run '%s' before this command.",
   "bingo.command.lobby.restarting": "Restarting the server...",

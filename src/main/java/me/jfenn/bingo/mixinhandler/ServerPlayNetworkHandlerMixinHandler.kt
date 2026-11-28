@@ -2,21 +2,22 @@ package me.jfenn.bingo.mixinhandler
 
 import net.minecraft.server.level.ServerPlayer
 import java.time.Instant
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 object ServerPlayNetworkHandlerMixinHandler {
 
-    private val playerMap = ConcurrentHashMap<Int, Instant>()
-    private val chunkBatchMap = ConcurrentHashMap<Int, Instant>()
-    private val loadingStartMap = ConcurrentHashMap<Int, Instant>()
+    private val playerMap = ConcurrentHashMap<UUID, Instant>()
+    private val chunkBatchMap = ConcurrentHashMap<UUID, Instant>()
+    private val loadingStartMap = ConcurrentHashMap<UUID, Instant>()
 
     fun getLastPlayerMovement(player: ServerPlayer): Instant? {
-        val id = System.identityHashCode(player)
+        val id = player.uuid
         return playerMap[id]
     }
 
     fun onPlayerMove(player: ServerPlayer) {
-        val id = System.identityHashCode(player)
+        val id = player.uuid
         playerMap[id] = Instant.now()
     }
 
@@ -25,17 +26,17 @@ object ServerPlayNetworkHandlerMixinHandler {
      * direct signal that terrain has arrived on the client, used to gate LOADING -> PLAYING.
      */
     fun getLastChunkBatchReceived(player: ServerPlayer): Instant? {
-        val id = System.identityHashCode(player)
+        val id = player.uuid
         return chunkBatchMap[id]
     }
 
     fun onChunkBatchReceived(player: ServerPlayer) {
-        val id = System.identityHashCode(player)
+        val id = player.uuid
         chunkBatchMap[id] = Instant.now()
     }
 
     fun getLoadingStarted(player: ServerPlayer): Instant? {
-        val id = System.identityHashCode(player)
+        val id = player.uuid
         return loadingStartMap[id]
     }
 
@@ -56,10 +57,17 @@ object ServerPlayNetworkHandlerMixinHandler {
      * signals when a new LOADING phase begins, and again after a recovery teleport is sent,
      * forces the gate to wait for a genuinely new ack.
      */
+    /** Drop the recorded signals for a player (e.g. on logout), so nothing outlives the session. */
+    fun remove(player: ServerPlayer) {
+        playerMap.remove(player.uuid)
+        chunkBatchMap.remove(player.uuid)
+        loadingStartMap.remove(player.uuid)
+    }
+
     fun markLoadingStarted(players: Iterable<ServerPlayer>) {
         val now = Instant.now()
         for (player in players) {
-            val id = System.identityHashCode(player)
+            val id = player.uuid
             playerMap.remove(id)
             chunkBatchMap.remove(id)
             loadingStartMap[id] = now

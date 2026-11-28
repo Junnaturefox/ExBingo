@@ -80,7 +80,10 @@ internal class TeamChestCommand(
                             executes {
                                 scope.get<SpectatorTeamJoinService>().approve(
                                     approver = playerOrThrow,
-                                    requesterId = UUID.fromString(getArgument(requesterArg)),
+                                    requesterId = runCatching { UUID.fromString(getArgument(requesterArg)) }
+                                  .getOrElse {
+                                      error(text.string(StringKey.CommandTeamRequestInvalidUuid))
+                                  },
                                     teamKey = BingoTeamKey(getArgument(teamArg)),
                                 )
                             }

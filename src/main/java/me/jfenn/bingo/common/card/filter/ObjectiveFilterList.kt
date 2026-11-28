@@ -41,7 +41,7 @@ data class ObjectiveFilterList(
                         it.startsWith('-') -> ObjectiveFilter.Exclude(it.substring(1))
                         it.contains("#") -> {
                             val tag = it.substringBefore('#')
-                            val count = it.substringAfter('#').toIntOrNull() ?: 0
+                            val count = (it.substringAfter('#').toIntOrNull() ?: 0).coerceIn(0, 25)
                             ObjectiveFilter.Count(tag, count)
                         }
                         else -> null

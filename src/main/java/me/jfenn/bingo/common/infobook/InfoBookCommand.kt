@@ -17,7 +17,7 @@ class InfoBookCommand(
                     !config.lobbyTutorialBook || !state.isLobbyMode
                 }
                 executes {
-                    val player = player ?: throw IllegalArgumentException("Could not resolve player")
+                    val player = playerOrThrow
                     val bookService = scope.get<InfoBookService>()
                     bookService.giveBookItem(player)
                 }

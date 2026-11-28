@@ -354,7 +354,9 @@ internal class MenuController(
         val lobbyWorld = server.lobbyWorld ?: return
         if (state.state != GameState.PREGAME) return
 
-        for (entity in lobbyWorld.allEntities) {
+        // snapshot first: allEntities is a live view over the entity lookup, and discarding an
+        // entity while iterating it can throw ConcurrentModificationException
+        for (entity in lobbyWorld.allEntities.toList()) {
             if (entity is Player) continue
             val bingoTags = entity.tags.filter { it.startsWith("bingo-") }
             if (bingoTags.isEmpty() || instanceTag in bingoTags) continue

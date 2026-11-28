@@ -67,8 +67,13 @@ internal class DataLoaderManager(
                 spawnKitsFuture,
                 commandsFuture,
                 messagesFuture,
-            ).whenComplete { _, _ ->
-                log.info("[DataLoader] Prepared in ${start.elapsedNow()}!")
+            ).whenComplete { _, error ->
+                if (error != null) {
+                    // without this the chain below is skipped silently and the data is never applied
+                    log.error("[DataLoader] Failed to load data - keeping the previous data.", error)
+                } else {
+                    log.info("[DataLoader] Prepared in ${start.elapsedNow()}!")
+                }
             }.thenCompose(event.whenPrepared).thenAcceptAsync({
                 scopedData.copyFrom(newData)
                 log.info("[DataLoader] Completed in ${start.elapsedNow()}!")

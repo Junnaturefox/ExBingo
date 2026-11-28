@@ -37,6 +37,12 @@ data class BingoCardOptions(
         if (itemDistribution.size != TierLabel.entries.size) {
             throw IllegalStateException("Item distribution $itemDistribution does not match the number of tiers (${TierLabel.entries.size})!")
         }
+        if (itemDistribution.any { it < 0 }) {
+            throw IllegalStateException("Item distribution $itemDistribution contains negative values!")
+        }
+        if (itemDistribution.sum() != 25) {
+            throw IllegalStateException("Item distribution $itemDistribution must sum to 25 tiles (got ${itemDistribution.sum()})!")
+        }
     }
 
     fun formatGameMode(): List<StringKey> {

@@ -5,6 +5,7 @@ import java.util.*
 
 object BingoApi {
     @JvmStatic
+    @Volatile
     private var current: IBingoApi? = null
 
     @BingoInternalApi
