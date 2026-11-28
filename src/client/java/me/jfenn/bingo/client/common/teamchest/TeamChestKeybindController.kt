@@ -23,15 +23,23 @@ internal class TeamChestKeybindController(
         StringKey.FullName.key,
     )
 
+    private var lastSpectatorHint: net.minecraft.network.chat.Component? = null
+
     init {
         eventBus.register(ClientTickEvent.End) {
             if (client.isPaused)
                 return@register
 
             if (state.gameStatus.isInGame && client.player.isSpectator) {
-                client.player.sendHotbarMessage(
-                    text.string(StringKey.HudSpectatorTeamSelect, openTeamChestKey.displayName)
-                )
+                // only send when the text changes: sending it every tick keeps resetting the
+                // overlay timer, which permanently hides every other hotbar message
+                val hint = text.string(StringKey.HudSpectatorTeamSelect, openTeamChestKey.displayName)
+                if (hint.value != lastSpectatorHint) {
+                    lastSpectatorHint = hint.value
+                    client.player.sendHotbarMessage(hint)
+                }
+            } else {
+                lastSpectatorHint = null
             }
 
             if (openTeamChestKey.wasPressed()) {

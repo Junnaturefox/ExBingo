@@ -40,6 +40,7 @@
   "bingo.command.join.spectators": "玩家 %s 转为旁观模式！",
   "bingo.command.join.success": "将玩家 %s 移到队伍 %s！",
   "bingo.command.join.already_on_team": "这个玩家已经在队伍“%s”了！",
+    "bingo.command.join.no_permission": "你没有加入队伍的权限。",
   "bingo.command.join.does_not_exist": "队伍“%s”不存在！",
   "bingo.command.lobby.must_run": "错误：你必须先运行“%s”，然后才能执行此命令。",
   "bingo.command.lobby.restarting": "正在重启服务器...",

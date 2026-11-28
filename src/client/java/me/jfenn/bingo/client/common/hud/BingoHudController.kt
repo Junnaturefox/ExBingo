@@ -492,7 +492,9 @@ internal class BingoHudController(
         }
         val tiles = MutableList(25) {
             val existingTile = clientCard.tiles.getOrNull(it)
-            val newTile = packet.tiles[it] ?: existingTile ?: CardTile.EMPTY
+            // copy the shared EMPTY singleton - assigning updatedAt on it would leak into every
+            // other empty tile
+            val newTile = packet.tiles[it] ?: existingTile ?: CardTile.EMPTY.copy()
 
             newTile.updatedAt = when {
                 // edge case - if almost the entire card is re-rolled, don't show updates

@@ -1,5 +1,6 @@
 package me.jfenn.bingo.common.menu
 
+import me.jfenn.bingo.common.Permission
 import me.jfenn.bingo.common.LOBBY_WORLD_ID
 import me.jfenn.bingo.common.Sounds
 import me.jfenn.bingo.common.data.ScopedData
@@ -15,6 +16,7 @@ import me.jfenn.bingo.common.team.BingoTeam
 import me.jfenn.bingo.common.team.BingoTeamKey
 import me.jfenn.bingo.common.team.BingoTeamPreset
 import me.jfenn.bingo.common.team.TeamService
+import me.jfenn.bingo.integrations.permissions.IPermissionsApi
 import me.jfenn.bingo.common.text.TextProvider
 import me.jfenn.bingo.common.utils.measureTime
 import me.jfenn.bingo.common.utils.plus
@@ -748,6 +750,14 @@ internal class MenuController(
         log.info("[MenuController] Spawned lobby team picker for {} at {}", teamKey.id, position)
 
         interactionEntityEvents.onInteract(interactionListenerEntity) { player ->
+            // the lobby team pickers bypassed the /join permission check, so a player whose
+            // exbingo.command.join was revoked could still join by clicking the sign
+            val permissions = koinScope.get<IPermissionsApi>()
+            if (!permissions.hasPermission(player, Permission.COMMAND_JOIN)) {
+                player.sendMessage(text.string(StringKey.CommandJoinNoPermission))
+                return@onInteract
+            }
+
             val team = BingoTeam.fromPreset(teamKey, teamPreset)
 
             particleFactory.createDustParticle(team.textColor.color ?: 0, 1f)

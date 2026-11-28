@@ -15,6 +15,8 @@ import me.jfenn.bingo.platform.IPlayerManager
 import me.jfenn.bingo.platform.text.IText
 import net.minecraft.ChatFormatting
 
+private const val MAX_STORED_MESSAGES = 200
+
 internal class GameMessageService(
     private val packets: ServerPacketEvents,
     private val options: BingoOptions,
@@ -212,6 +214,10 @@ internal class GameMessageService(
         message: GameMessage
     ) {
         state.gameMessages.add(message)
+        // messages are persisted with the save and replayed by the client, so keep them bounded
+        while (state.gameMessages.size > MAX_STORED_MESSAGES) {
+            state.gameMessages.removeFirst()
+        }
 
         playerManager.getPlayers()
             .filter { isEnabled(it, message) }

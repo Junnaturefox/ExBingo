@@ -106,6 +106,10 @@ internal class CardService(
     fun createInitialCards() {
         log.info("[CardService] Generating initial cards from game-options.json")
 
+        // keep the previous cards around: if every card fails to generate, the state must not be
+        // left with an empty card list (getActiveCard()/cards.first() would throw everywhere)
+        val previousCards = state.cards.toList()
+
         // Clear any cards that already exist (avoids disconnected options ref)
         state.cards.clear()
 
@@ -117,11 +121,25 @@ internal class CardService(
 
         // Note: cardOptionsList is reversed, since newCard adds to the front of the cards
         // (same as /bingo card push)
+        var createdCount = 0
         for (cardOptions in cardOptionsList) {
             try {
                 newCard(cardOptions).let { state.pushCardTail(it) }
+                createdCount++
             } catch (e: Throwable) {
-                log.info("[CardService] Cannot create card from config:", e)
+                log.error("[CardService] Cannot create card from config:", e)
+            }
+        }
+
+        if (createdCount == 0) {
+            // fall back to the previous cards, or a default card, so the round can still start
+            if (previousCards.isNotEmpty()) {
+                log.warn("[CardService] No card could be generated - keeping the previous {} card(s).", previousCards.size)
+                state.cards.addAll(previousCards)
+            } else {
+                log.error("[CardService] No card could be generated - falling back to a default card.")
+                runCatching { state.pushCardTail(newCard(BingoCardOptions())) }
+                    .onFailure { log.error("[CardService] Could not create a default card:", it) }
             }
         }
 

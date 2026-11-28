@@ -22,6 +22,8 @@ import net.minecraft.ChatFormatting
 import java.time.Duration
 import java.time.Instant
 
+private const val MAX_STORED_COORDS = 20
+
 class CoordsCommand(
     commandManager: ICommandManager,
 ) : BingoComponent() {

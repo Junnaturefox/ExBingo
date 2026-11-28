@@ -24,6 +24,7 @@ import me.jfenn.bingo.common.utils.seconds
 import me.jfenn.bingo.generated.StringKey
 import me.jfenn.bingo.platform.IPlayerHandle
 import me.jfenn.bingo.platform.IPlayerManager
+import me.jfenn.bingo.platform.IExecutors
 import me.jfenn.bingo.platform.event.IEventBus
 import me.jfenn.bingo.platform.text.IText
 import me.jfenn.bingo.platform.text.TextAction
@@ -36,6 +37,7 @@ internal class GameService(
     private val state: BingoState,
     private val options: BingoOptions,
     private val eventBus: IEventBus,
+    private val serverTaskExecutor: IExecutors.IServerTaskExecutor,
     private val teamService: TeamService,
     private val configService: ConfigService,
     private val cardService: CardService,
@@ -213,10 +215,15 @@ internal class GameService(
         // Finally, change state to POSTGAME (announces in GameOverController)
         state.changeState(eventBus, GameState.POSTGAME)
 
-        // if lobbyMode=false, immediately change state back to PREGAME once the POSTGAME events are sent
+        // if lobbyMode=false, change state back to PREGAME once the POSTGAME events are sent.
+        // Deferred by one tick: resetting synchronously clears state.cards while callers (e.g.
+        // ScoredItemCheck) are still iterating them, and it also clears endedAt, which the rest of
+        // the tick uses as the "game just ended" sentinel.
         if (!state.isLobbyMode) {
-            state.reset()
-            state.changeState(eventBus, GameState.PREGAME)
+            serverTaskExecutor.executeNextTick {
+                state.reset()
+                state.changeState(eventBus, GameState.PREGAME)
+            }
         }
     }
 

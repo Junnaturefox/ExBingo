@@ -25,7 +25,9 @@ internal class InventoryScreenHandler(
     val onClose = EventListener<List<ItemStack>>()
 
     init {
-        stacks.forEachIndexed { i, stack ->
+        // SimpleContainer#setItem does not bounds-check, so a kit with more than 27 entries used
+        // to throw IndexOutOfBoundsException when opening the editor
+        stacks.take(inventory.containerSize).forEachIndexed { i, stack ->
             // remove bingo flags when in a config inventory
             stack.removeCustomTag(NBT_BINGO_IGNORE)
             stack.removeCustomTag(NBT_BINGO_VANISH)

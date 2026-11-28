@@ -64,10 +64,21 @@ internal class ReadyController(
             log.info("[ReadyController] Reached the end of the PREGAME timer - starting the game!")
             readyService.reset()
             val warnings = mutableListOf<IText>()
-            gameService.start(warnings, allowSpectators = true)
+            // the ready countdown is the players' confirmation to start, so warnings must not stop
+            // it - without ignoreWarnings, start() returns false and the timer restarts forever
+            val started = gameService.start(
+                warnings = warnings,
+                ignoreWarnings = true,
+                allowSpectators = true,
+            )
             warnings.forEachIndexed { i, warning ->
                 playerManager.getPlayers()
                     .forEach { it.sendMessage(text.formatWarning(warning, i == 0)) }
+            }
+            if (!started) {
+                // avoid an endless retry loop: the timer would otherwise restart on the next tick
+                log.warn("[ReadyController] The ready auto-start was refused; cancelling the timer.")
+                readyState.isCancelled = true
             }
         }
 

@@ -15,6 +15,7 @@
     "MapStateAccessor",
     "MinecraftServerAccessor",
     "MinecraftServerConfigurePackRepositoryMixin",
+    "MinecraftServerSaveMixin",
     "MinecraftServerSkipStartRegionMixin",
     "MinecraftServerUnsafeSkipCloseMixin",
     "PlayerAdvancementTrackerPreventSpectatorsMixin",

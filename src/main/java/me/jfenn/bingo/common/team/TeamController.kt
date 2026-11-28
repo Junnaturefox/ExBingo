@@ -41,6 +41,10 @@ internal class TeamController(
                 if (mcTeam != null && bingoTeam != null) {
                     if (bingoTeam.players.isEmpty() && bingoTeam.isTemporary) {
                         log.info("[TeamController] Removing team '$teamId' because it no longer contains any players.")
+                        // this used to log and `continue` without removing anything, which spammed
+                        // the log every tick and left the empty temporary team registered
+                        state.teams.remove(bingoTeam.key)
+                        teamManager.deleteTeam(mcTeam.name)
                         continue
                     }
 

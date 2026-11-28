@@ -140,6 +140,17 @@ internal class ReadyService(
         }
     }
 
+    /**
+     * Cancel the countdown without clearing the cancelled flag afterwards.
+     * [reset] is also used for option changes, which re-arms the timer - using it alone made
+     * `/ready cancel` ineffective.
+     */
+    fun cancel() {
+        readyTimerState.reset()
+        readyTimerState.isCancelled = true
+        playerManager.getPlayers().forEach { player -> playerManager.updatePlayerListName(player) }
+    }
+
     fun reset() {
         readyTimerState.reset()
         playerManager.getPlayers().forEach { player ->

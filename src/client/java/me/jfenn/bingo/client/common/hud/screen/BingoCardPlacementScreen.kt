@@ -23,6 +23,7 @@ import java.time.Duration
 import java.time.temporal.ChronoUnit
 import java.util.*
 import kotlin.math.absoluteValue
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 internal class BingoCardPlacementScreen(
@@ -89,6 +90,13 @@ internal class BingoCardPlacementScreen(
     val cardColors = state.cardColors.getTeamColors(null, null)
 
     var cardScale: Float = config.client.cardScale
+
+    /** Smallest/largest scale that keeps the card inside the window in both axes. */
+    private val minCardScale = 0.25f
+    private val maxCardScale get() = min(
+        scaledWindowWidth.toFloat() / CARD_WIDTH,
+        scaledWindowHeight.toFloat() / CARD_HEIGHT,
+    ).coerceAtLeast(minCardScale)
     var cardAlignment: CardAlignment = config.client.cardAlignment
     var cardOffsetX = config.client.cardOffsetX
     var cardOffsetY = config.client.cardOffsetY
@@ -106,13 +114,18 @@ internal class BingoCardPlacementScreen(
     var resizeStart: Vector2d? = null
 
     private fun initCardPosition() {
+        // a stored scale can be wider than the window (narrow windows): clamp it first, because
+        // coerceIn() throws when the upper bound is below the lower bound
+        cardScale = cardScale.coerceIn(minCardScale, maxCardScale)
+
         val offsetX = cardOffsetX * (if (cardAlignment.x > 0) -1 else 1)
         val offsetY = cardOffsetY * (if (cardAlignment.y > 0) -1 else 1)
 
-        cardLeft = (cardAlignment.x * (scaledWindowWidth - (CARD_WIDTH * cardScale)) + offsetX)
-            .coerceIn(0f, scaledWindowWidth - (CARD_WIDTH * cardScale))
-        cardTop = (cardAlignment.y * (scaledWindowHeight - (CARD_HEIGHT * cardScale)) + offsetY)
-            .coerceIn(0f, scaledWindowHeight - (CARD_HEIGHT * cardScale))
+        val maxLeft = (scaledWindowWidth - (CARD_WIDTH * cardScale)).coerceAtLeast(0f)
+        val maxTop = (scaledWindowHeight - (CARD_HEIGHT * cardScale)).coerceAtLeast(0f)
+
+        cardLeft = (cardAlignment.x * maxLeft + offsetX).coerceIn(0f, maxLeft)
+        cardTop = (cardAlignment.y * maxTop + offsetY).coerceIn(0f, maxTop)
     }
 
     private fun applyCardPosition() {
@@ -203,8 +216,15 @@ internal class BingoCardPlacementScreen(
             val cardPos = Vector2d(cardLeft.toDouble(), cardTop.toDouble())
             val distanceToStart = cardPos.distance(start).toFloat()
             val distanceToPos = cardPos.distance(pos).toFloat()
-            cardScale = ((resizeFromScale / distanceToStart) * distanceToPos)
-                .coerceIn(.25f, scaledWindowHeight.toFloat()/CARD_HEIGHT)
+
+            // dragging from the card's own corner makes the ratio 0/0 -> NaN, and a tiny distance
+            // produces Infinity; both would corrupt cardScale
+            if (distanceToStart < 1f) return true
+
+            val newScale = (resizeFromScale / distanceToStart) * distanceToPos
+            if (newScale.isFinite()) {
+                cardScale = newScale.coerceIn(minCardScale, maxCardScale)
+            }
 
             // snap to hardcoded fractions
             for (cardScaleValue in cardScaleSnapToValues) {
@@ -212,6 +232,7 @@ internal class BingoCardPlacementScreen(
                     cardScale = cardScaleValue
                 }
             }
+            cardScale = cardScale.coerceIn(minCardScale, maxCardScale)
             return true
         }
 

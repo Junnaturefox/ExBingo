@@ -84,8 +84,11 @@ data class BingoState internal constructor(
      * Replace any assigned team cards with the default behavior (first card)
      */
     fun resetTeamCards() {
+        // cards may be empty if every card failed to generate - leave the assignments untouched
+        // instead of throwing NoSuchElementException
+        val firstCardId = cards.firstOrNull()?.id ?: return
         for (team in teams.values) {
-            team.cardId = cards.first().id
+            team.cardId = firstCardId
         }
     }
 
@@ -147,7 +150,7 @@ data class BingoState internal constructor(
     fun registerTeam(team: BingoTeam): BingoTeam {
         return teams.getOrPut(team.key) {
             team.newInstance().apply {
-                cardId = cards.first().id
+                cardId = cards.firstOrNull()?.id
             }
         }
     }

@@ -49,9 +49,12 @@ internal fun MenuComponent.registerItemDistribution(
         val tooltip = buildTooltip(tier.string, tier.formatting)
         val offset = Vector3d(i*(TIER_WIDTH + TIER_PADDING) + TIER_WIDTH/2, -MENU_LINE_HEIGHT - MENU_LINE_PADDING, 0.0)
 
+        // the "+" and "-" buttons used to share the exact same position/size, so only one of them
+        // could be clicked - split the tile into left/right halves instead
         registerTileButton(
-            position = position + offset.sub(0.0, MENU_LINE_PADDING + TIER_HEIGHT, 0.0),
-            width = TIER_WIDTH,
+            position = position + offset.sub(0.0, MENU_LINE_PADDING + TIER_HEIGHT, 0.0) +
+                    Vector3d(TIER_WIDTH / 4.0, 0.0, 0.0),
+            width = TIER_WIDTH / 2.0,
             height = TIER_HEIGHT,
             text = text.literal("+"),
             tooltip = tooltip,
@@ -96,8 +99,9 @@ internal fun MenuComponent.registerItemDistribution(
         }
 
         registerTileButton(
-            position = position + offset.sub(0.0, MENU_LINE_PADDING + TIER_HEIGHT, 0.0),
-            width = TIER_WIDTH,
+            position = position + offset.sub(0.0, MENU_LINE_PADDING + TIER_HEIGHT, 0.0) +
+                    Vector3d(-TIER_WIDTH / 4.0, 0.0, 0.0),
+            width = TIER_WIDTH / 2.0,
             height = TIER_HEIGHT,
             text = text.literal("-"),
             tooltip = tooltip,

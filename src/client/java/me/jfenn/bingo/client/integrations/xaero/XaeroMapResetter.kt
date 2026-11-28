@@ -84,8 +84,13 @@ internal class XaeroMapResetter(
                 val addMultiworldChecked = dimension.javaClass.getMethod("addMultiworldChecked", String::class.java)
                 var id = "cm\$bingo${System.currentTimeMillis()}"
                 var attempt = 0
-                while (addMultiworldChecked.invoke(dimension, id) != true) {
+                // bounded: an unchecked loop froze the client if Xaero kept rejecting the id
+                while (addMultiworldChecked.invoke(dimension, id) != true && attempt < 8) {
                     id = "cm\$bingo${System.currentTimeMillis()}_${++attempt}"
+                }
+                if (attempt >= 8) {
+                    log.warn("[XaeroMapResetter] Could not register a multiworld id after 8 attempts - skipping this reset.")
+                    return
                 }
 
                 processor.javaClass.getMethod("setMultiworld", dimensionClass, String::class.java)
