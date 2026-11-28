@@ -31,10 +31,19 @@ class LobbyEntityTagsTest {
     }
 
     @Test
-    fun `entities without bingo tags are never swept`() {
+    fun `entities without bingo tags are never swept by the tag-based sweep`() {
         // ordinary world entities must survive a menu rebuild
         assertFalse(emptyList<String>().isStaleLobbyEntity(own))
         assertFalse(listOf("unrelated", "exbingo-menuitem").isStaleLobbyEntity(own))
+    }
+
+    @Test
+    fun `position-based cleanup treats untagged leftovers as foreign`() {
+        // a menu entity type sitting at a menu position is ours even when a crash left it untagged
+        assertTrue(emptyList<String>().isForeignLobbyEntity(own))
+        assertTrue(listOf("unrelated").isForeignLobbyEntity(own))
+        assertFalse(listOf(own).isForeignLobbyEntity(own))
+        assertTrue(listOf(other).isForeignLobbyEntity(own))
     }
 
     @Test

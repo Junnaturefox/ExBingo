@@ -1,6 +1,6 @@
 package me.jfenn.bingo.common.menu
 
-import me.jfenn.bingo.common.menu.lifecycle.isStaleLobbyEntity
+import me.jfenn.bingo.common.menu.lifecycle.isForeignLobbyEntity
 import me.jfenn.bingo.common.event.InteractionEntityEvents
 import me.jfenn.bingo.platform.EntityType
 import me.jfenn.bingo.platform.IEntity
@@ -140,7 +140,7 @@ internal class MenuInstance(
             .filter { it.uuid !in runtimeIds }
             .filter { stale -> menuCandidates.any { it.type == stale.type && it.pos.isNear(stale.pos) } }
             .filter {
-                it.commandTags.isStaleLobbyEntity(instanceTag)
+                it.commandTags.isForeignLobbyEntity(instanceTag)
             }
             .forEach { stale ->
                 interactionEntityEvents.removeInteract(stale.uuid)

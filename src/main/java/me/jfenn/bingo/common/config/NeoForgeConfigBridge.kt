@@ -2,9 +2,6 @@ package me.jfenn.bingo.common.config
 
 import kotlinx.serialization.encodeToString
 import me.jfenn.bingo.common.MOD_ID_BINGO
-import me.jfenn.bingo.common.card.autotier.AutoTierConfig
-import me.jfenn.bingo.common.card.filter.ObjectiveFilterList
-import me.jfenn.bingo.common.card.tierlist.TierLabel
 import me.jfenn.bingo.common.utils.decodeFromUtf8Stream
 import me.jfenn.bingo.common.utils.json
 import me.jfenn.bingo.mixinhandler.ExperienceBottleXpHelper
@@ -18,9 +15,6 @@ import net.neoforged.neoforge.common.ModConfigSpec
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.UUID
-import java.util.function.Predicate
-import java.util.function.Supplier
 import kotlin.io.path.exists
 
 object NeoForgeConfigBridge {

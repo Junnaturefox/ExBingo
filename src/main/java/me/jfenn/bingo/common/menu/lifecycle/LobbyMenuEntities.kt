@@ -74,8 +74,8 @@ internal class LobbyMenuEntities(
      * Discards any lobby entity carrying a bingo- tag that is NOT the current [instanceTag].
      *
      * Their interaction listeners are already gone, so leaving them in place steals clicks from the
-     * real menu buttons they overlap. Returns true when the sweep ran (the caller decrements the
-     * budget through [staleSweepTicksRemaining]).
+     * real menu buttons they overlap. The caller owns the "only sweep during PREGAME, and only while
+     * [staleSweepTicksRemaining] is positive" gate.
      */
     fun sweepStale(world: ServerLevel) {
         // snapshot first: allEntities is a live view over the entity lookup, and discarding an
@@ -101,13 +101,18 @@ internal class LobbyMenuEntities(
     }
 
     /** Platform entity variant, used for [entityManager] iteration results. */
-    fun discard(entity: IEntity) {
+    fun discardPlatformEntity(entity: IEntity) {
         interactionEntityEvents.removeInteract(entity.uuid)
         entity.discard()
     }
 
     fun trackTeamPickerChunk(pos: ChunkPos) {
         teamPickerChunks += pos
+    }
+
+    /** Drops the tracked chunk positions without releasing them (the world is already gone). */
+    fun forgetTeamPickerChunks() {
+        teamPickerChunks.clear()
     }
 
     fun releaseTeamPickerTickets(world: ServerLevel) {
@@ -131,8 +136,8 @@ internal class LobbyMenuEntities(
         entityManager.iterateEntities(world)
             .filter { isLobbyEntityType(it.type) }
             .filter { entity -> positions.any { it.isNear(entity.pos) } }
-            .filter { it.commandTags.isStaleLobbyEntity(instanceTag) }
-            .forEach(::discard)
+            .filter { it.commandTags.isForeignLobbyEntity(instanceTag) }
+            .forEach(::discardPlatformEntity)
     }
 
     private fun isLobbyEntityType(type: EntityType<*>): Boolean {

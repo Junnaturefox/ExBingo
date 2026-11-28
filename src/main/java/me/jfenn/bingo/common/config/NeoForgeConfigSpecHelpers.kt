@@ -1,14 +1,10 @@
 package me.jfenn.bingo.common.config
 
-import kotlinx.serialization.encodeToString
 import me.jfenn.bingo.common.MOD_ID_BINGO
-import me.jfenn.bingo.common.card.autotier.AutoTierConfig
 import me.jfenn.bingo.common.card.filter.ObjectiveFilterList
 import me.jfenn.bingo.common.card.tierlist.TierLabel
-import me.jfenn.bingo.common.utils.json
 import net.neoforged.neoforge.common.ModConfigSpec
 import java.util.function.Predicate
-import java.util.UUID
 import java.util.function.Supplier
 
 

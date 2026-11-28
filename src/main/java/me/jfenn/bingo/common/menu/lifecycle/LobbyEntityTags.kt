@@ -26,9 +26,20 @@ internal fun Collection<String>.isLobbyEntityOf(instanceTag: String): Boolean = 
  * True when the entity belongs to a *different* lobby instance and should be swept.
  *
  * Entities without any bingo tag are not menu entities at all and are never stale, so this returns
- * false for them.
+ * false for them. Use [isForeignLobbyEntity] for the position-based cleanup, which predates the
+ * tagging and also removes untagged leftovers.
  */
 internal fun Collection<String>.isStaleLobbyEntity(instanceTag: String): Boolean {
     val tags = lobbyTags()
     return tags.isNotEmpty() && instanceTag !in tags
 }
+
+/**
+ * True when the entity does not belong to the running instance - including entities without any
+ * bingo tag.
+ *
+ * The menu/team-picker cleanup is position based: anything of a menu entity type sitting at a menu
+ * position is ours, even when it was created by a build (or a crash) that did not tag it yet. That
+ * is why this predicate is stricter than [isStaleLobbyEntity].
+ */
+internal fun Collection<String>.isForeignLobbyEntity(instanceTag: String): Boolean = instanceTag !in lobbyTags()

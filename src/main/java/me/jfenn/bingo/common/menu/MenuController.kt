@@ -36,8 +36,6 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
-import net.minecraft.world.entity.Entity
-import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.chunk.status.ChunkStatus
 import org.joml.Matrix4d
 import org.joml.Vector3d
@@ -46,7 +44,6 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.time.Instant
-import java.util.*
 import kotlin.math.atan2
 import kotlin.math.roundToInt
 
@@ -170,10 +167,6 @@ internal class MenuController(
     override fun menuEntityStats(): MenuEntityStats {
         val lobbyWorld = server.lobbyWorld ?: return MenuEntityStats()
         return menuEntities.stats(lobbyWorld)
-    }
-
-    fun menuEntityCount(): Int {
-        return menuEntityStats().total
     }
 
     override fun spawnLobby() {
@@ -351,7 +344,9 @@ internal class MenuController(
         menu = null
 
         if (lobbyWorld == null) {
-            // nothing to release: no lobby world
+            // the world is already gone, so there is nothing to release, but the tracked chunk
+            // positions must not leak into the next lobby world
+            menuEntities.forgetTeamPickerChunks()
             return
         }
 
@@ -557,7 +552,7 @@ internal class MenuController(
         for ((teamKey, blockPos) in teamPositions) {
             val team = data.teamPresets[teamKey] ?: continue
             clearMarkerBlock(lobbyWorld, blockPos)
-            spawnTeamEntity(lobbyWorld, Vector3d(blockPos.x + 0.5, blockPos.y.toDouble(), blockPos.z + 0.5), teamKey, team, menuEntities.instanceTag)
+            spawnTeamEntity(lobbyWorld, Vector3d(blockPos.x + 0.5, blockPos.y.toDouble(), blockPos.z + 0.5), teamKey, team)
         }
     }
 
@@ -620,7 +615,6 @@ internal class MenuController(
         position: Vector3d,
         teamKey: BingoTeamKey,
         teamPreset: BingoTeamPreset,
-        instanceTag: String,
     ) {
         lobbyWorld.loadChunkAt(position)
         cleanupTeamPickerEntities(lobbyWorld, position)
@@ -638,7 +632,7 @@ internal class MenuController(
                 background = 0
                 shadow = true
             }
-            .also { it.commandTags += instanceTag }
+            .also { it.commandTags += menuEntities.instanceTag }
             .also {
                 if (!entityManager.spawnEntity(lobbyWorld, it)) {
                     log.warn("[MenuController] Unable to spawn team name entity for ${teamKey.id} at ${it.pos}")
@@ -654,7 +648,7 @@ internal class MenuController(
                 billboard = ITextDisplayEntity.Billboard.VERTICAL
                 alignment = ITextDisplayEntity.TextAlignment.CENTER
             }
-            .also { it.commandTags += instanceTag }
+            .also { it.commandTags += menuEntities.instanceTag }
             .also {
                 if (!entityManager.spawnEntity(lobbyWorld, it)) {
                     log.warn("[MenuController] Unable to spawn team hint entity for ${teamKey.id} at ${it.pos}")
@@ -670,7 +664,7 @@ internal class MenuController(
                 width = 2f
                 height = 4f
             }
-            .also { it.commandTags += instanceTag }
+            .also { it.commandTags += menuEntities.instanceTag }
             .also {
                 if (!entityManager.spawnEntity(lobbyWorld, it)) {
                     log.warn("[MenuController] Unable to spawn team interaction entity for ${teamKey.id} at ${it.pos}")

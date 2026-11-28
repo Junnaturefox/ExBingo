@@ -1,13 +1,8 @@
 package me.jfenn.bingo.common.config
 
 import me.jfenn.bingo.common.card.autotier.AutoTierConfig
-import me.jfenn.bingo.common.card.filter.ObjectiveFilterList
-import me.jfenn.bingo.common.card.tierlist.TierLabel
-import me.jfenn.bingo.common.utils.json
 import net.neoforged.neoforge.common.ModConfigSpec
 import java.util.UUID
-import java.util.function.Predicate
-import java.util.function.Supplier
 
 class CommonValues(builder: ModConfigSpec.Builder) {
     val entries = mutableListOf<ConfigEntry>()
