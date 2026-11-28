@@ -8,10 +8,8 @@ import me.jfenn.bingo.common.datapack.LobbyWorldService
 import me.jfenn.bingo.common.event.InteractionEntityEvents
 import me.jfenn.bingo.common.event.ScopedEvents
 import me.jfenn.bingo.common.lobbyWorld
-import me.jfenn.bingo.common.menu.lifecycle.isLobbyEntityOf
-import me.jfenn.bingo.common.menu.lifecycle.isStaleLobbyEntity
-import me.jfenn.bingo.common.menu.lifecycle.lobbyTags
-import me.jfenn.bingo.common.menu.lifecycle.newLobbyInstanceTag
+import me.jfenn.bingo.common.menu.lifecycle.LobbyMenuEntities
+import me.jfenn.bingo.common.menu.lifecycle.MenuEntityStats
 import me.jfenn.bingo.common.menu.tooltips.TooltipState
 import me.jfenn.bingo.common.scope.BingoComponent
 import me.jfenn.bingo.common.scope.ScopeManager
@@ -36,7 +34,6 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.PlayerHeadBlock
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.server.level.TicketType
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.entity.Entity
@@ -52,17 +49,6 @@ import java.time.Instant
 import java.util.*
 import kotlin.math.atan2
 import kotlin.math.roundToInt
-
-internal data class MenuEntityStats(
-    val current: Int = 0,
-    val stale: Int = 0,
-) {
-    val total: Int get() = current + stale
-
-    override fun toString(): String {
-        return "total=$total,current=$current,stale=$stale"
-    }
-}
 
 internal class MenuController(
     events: ScopedEvents,
@@ -85,11 +71,12 @@ internal class MenuController(
 
     private var menu: MenuInstance? = null
     private var suppressNextPregameSpawn = false
+    // entity bookkeeping for the current menu instance
+    private val menuEntities = LobbyMenuEntities(log, entityManager, interactionEntityEvents)
     // the lobby menu only exists while the bingo scope is alive; report that clearly instead of
     // throwing a bare NullPointerException from a component constructor
     private val koinScope = scopeManager.getScope(server)
         ?: error("MenuController was created without a bingo scope for the running server")
-    private val teamPickerChunks = mutableSetOf<ChunkPos>()
 
     // Guards against overlapping deferred spawn attempts: spawnLobby may reschedule itself for a
     // later tick while waiting for persisted lobby entities to finish loading, and must not run
@@ -98,7 +85,6 @@ internal class MenuController(
 
     // Unique tag for entities belonging to the current lobby instance. Regenerated each time
     // the lobby is spawned so stale runtime menu/team entities can be discarded safely.
-    private var instanceTag = newLobbyInstanceTag()
 
     // Ticks remaining for the post-spawn stale-entity sweep. In safe-reset mode the previous
     // round's menu/team entities are autosaved into the lobby world's entities/ data and reload
@@ -109,12 +95,8 @@ internal class MenuController(
     // side (the "left menu dead on first round-end, fine on the second" symptom). A single gated
     // cleanup can't catch them; sweeping every tick for a window after spawn does, regardless of
     // which chunk they land in or how late they drain.
-    private var staleSweepTicksRemaining = 0
 
     private companion object {
-        val TEAM_PICKER_TICKET: TicketType<ChunkPos> = TicketType.create("bingo-team-picker") { a, b ->
-            a.toLong().compareTo(b.toLong())
-        }
 
         // Cap on how many ticks we wait for persisted lobby entities to drain out of the async
         // loading inbox before spawning anyway. ~5s at 20 tps; well beyond normal load latency.
@@ -187,23 +169,11 @@ internal class MenuController(
 
     override fun menuEntityStats(): MenuEntityStats {
         val lobbyWorld = server.lobbyWorld ?: return MenuEntityStats()
-        return menuEntityStats(lobbyWorld)
+        return menuEntities.stats(lobbyWorld)
     }
 
     fun menuEntityCount(): Int {
         return menuEntityStats().total
-    }
-
-    private fun menuEntityStats(lobbyWorld: ServerLevel): MenuEntityStats {
-        var current = 0
-        var stale = 0
-        lobbyWorld.allEntities.forEach { entity ->
-            if (entity is Player) return@forEach
-            val bingoTags = entity.tags.lobbyTags()
-            if (bingoTags.isEmpty()) return@forEach
-            if (instanceTag in bingoTags) current++ else stale++
-        }
-        return MenuEntityStats(current = current, stale = stale)
     }
 
     override fun spawnLobby() {
@@ -304,9 +274,9 @@ internal class MenuController(
 
     private fun performSpawnLobby(lobbyWorld: ServerLevel) {
         val menuPos = refreshLobbyState(lobbyWorld)
-        val beforeCleanupStats = menuEntityStats(lobbyWorld)
+        val beforeCleanupStats = menuEntities.stats(lobbyWorld)
         cleanupLobby(lobbyWorld)
-        val afterCleanupStats = menuEntityStats(lobbyWorld)
+        val afterCleanupStats = menuEntities.stats(lobbyWorld)
         if (afterCleanupStats.total > 0) {
             log.error(
                 "[MenuController] Lobby cleanup left bingo entities behind: before={}, after={}",
@@ -317,7 +287,7 @@ internal class MenuController(
 
         // Regenerate our instance tag so any menu/team-picker entities that survived from a
         // previous lobby instance now carry an old tag and can be discarded.
-        instanceTag = newLobbyInstanceTag()
+        menuEntities.rotateInstanceTag()
 
         if (menuPos != null) {
             log.info("[MenuController] Spawning lobby menu at ${menuPos.getTranslation(Vector3d())}")
@@ -328,14 +298,14 @@ internal class MenuController(
                 entityManager = entityManager,
                 interactionEntityEvents = interactionEntityEvents,
                 matrix = menuPos,
-                instanceTag = instanceTag,
+                instanceTag = menuEntities.instanceTag,
             )
         } else {
             log.warn("[MenuController] Not spawning menu entities as the lobby has no menu position.")
         }
 
         spawnTeamEntities(lobbyWorld)
-        val afterSpawnStats = menuEntityStats(lobbyWorld)
+        val afterSpawnStats = menuEntities.stats(lobbyWorld)
         if (afterSpawnStats.stale > 0) {
             log.error("[MenuController] Lobby spawned with stale bingo entities still present: {}", afterSpawnStats)
         } else {
@@ -345,7 +315,7 @@ internal class MenuController(
         // Begin the post-spawn stale-entity sweep window: persisted entities from the previous
         // round may still be draining in from async chunk loading and would otherwise overlap the
         // freshly spawned menu and swallow clicks. See staleSweepTicksRemaining.
-        staleSweepTicksRemaining = STALE_SWEEP_TICKS
+        menuEntities.staleSweepTicksRemaining = STALE_SWEEP_TICKS
     }
 
     /**
@@ -356,20 +326,13 @@ internal class MenuController(
      * real menu buttons they overlap.
      */
     private fun sweepStaleLobbyEntities() {
-        if (staleSweepTicksRemaining <= 0) return
-        staleSweepTicksRemaining--
+        if (menuEntities.staleSweepTicksRemaining <= 0) return
+        menuEntities.staleSweepTicksRemaining--
 
         val lobbyWorld = server.lobbyWorld ?: return
         if (state.state != GameState.PREGAME) return
 
-        // snapshot first: allEntities is a live view over the entity lookup, and discarding an
-        // entity while iterating it can throw ConcurrentModificationException
-        for (entity in lobbyWorld.allEntities.toList()) {
-            if (entity is Player) continue
-            if (!entity.tags.isStaleLobbyEntity(instanceTag)) continue
-            log.info("[MenuController] Sweeping stale lobby entity {} (tags={})", entity.uuid, entity.tags.lobbyTags())
-            discardLobbyEntity(entity)
-        }
+        menuEntities.sweepStale(lobbyWorld)
     }
 
     private fun refreshLobbyState(lobbyWorld: ServerLevel): Matrix4d? {
@@ -388,19 +351,12 @@ internal class MenuController(
         menu = null
 
         if (lobbyWorld == null) {
-            teamPickerChunks.clear()
+            // nothing to release: no lobby world
             return
         }
 
-        releaseTeamPickerTickets(lobbyWorld)
-        lobbyWorld.allEntities
-            .filter { it !is Player && it.tags.any { tag -> tag.startsWith("bingo-") } }
-            .forEach(::discardLobbyEntity)
-    }
-
-    private fun discardLobbyEntity(entity: Entity) {
-        interactionEntityEvents.removeInteract(entity.uuid)
-        entity.discard()
+        menuEntities.releaseTeamPickerTickets(lobbyWorld)
+        menuEntities.discardAll(lobbyWorld)
     }
 
     override fun prepareLobbyFiles() = log.measureTime("[MenuController] Preparing the BINGO lobby...") {
@@ -601,7 +557,7 @@ internal class MenuController(
         for ((teamKey, blockPos) in teamPositions) {
             val team = data.teamPresets[teamKey] ?: continue
             clearMarkerBlock(lobbyWorld, blockPos)
-            spawnTeamEntity(lobbyWorld, Vector3d(blockPos.x + 0.5, blockPos.y.toDouble(), blockPos.z + 0.5), teamKey, team, instanceTag)
+            spawnTeamEntity(lobbyWorld, Vector3d(blockPos.x + 0.5, blockPos.y.toDouble(), blockPos.z + 0.5), teamKey, team, menuEntities.instanceTag)
         }
     }
 
@@ -651,44 +607,12 @@ internal class MenuController(
             )
         )
         getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL)
-        chunkSource.addRegionTicket(TEAM_PICKER_TICKET, chunkPos, 0, chunkPos)
-        teamPickerChunks += chunkPos
-    }
-
-    private fun releaseTeamPickerTickets(lobbyWorld: ServerLevel) {
-        for (chunkPos in teamPickerChunks) {
-            lobbyWorld.chunkSource.removeRegionTicket(TEAM_PICKER_TICKET, chunkPos, 0, chunkPos)
-        }
-        teamPickerChunks.clear()
-    }
-
-    private fun Vector3d.isNear(other: Vector3d): Boolean {
-        return distanceSquared(other) < 1.0E-4
-    }
-
-    private fun isLobbyEntityType(type: EntityType<*>): Boolean {
-        return type == EntityType.TEXT_DISPLAY ||
-                type == EntityType.BLOCK_DISPLAY ||
-                type == EntityType.INTERACTION
+        chunkSource.addRegionTicket(LobbyMenuEntities.TEAM_PICKER_TICKET, chunkPos, 0, chunkPos)
+        menuEntities.trackTeamPickerChunk(chunkPos)
     }
 
     private fun cleanupTeamPickerEntities(lobbyWorld: ServerLevel, position: Vector3d) {
-        val positions = listOf(
-            position + Vector3d(0.0, 1.5, 0.0),
-            position + Vector3d(0.0, 1.0, 0.0),
-            position + Vector3d(0.0, -1.0, 0.0),
-        )
-
-        entityManager.iterateEntities(lobbyWorld)
-            .filter { isLobbyEntityType(it.type) }
-            .filter { entity -> positions.any { it.isNear(entity.pos) } }
-            .filter {
-                it.commandTags.isStaleLobbyEntity(instanceTag)
-            }
-            .forEach { entity ->
-                interactionEntityEvents.removeInteract(entity.uuid)
-                entity.discard()
-            }
+        menuEntities.cleanupTeamPickerEntities(lobbyWorld, position)
     }
 
     private fun spawnTeamEntity(

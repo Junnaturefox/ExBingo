@@ -1,7 +1,7 @@
 package me.jfenn.bingo.common.autorestart
 
 import me.jfenn.bingo.common.bossbar.ResetBossBarService
-import me.jfenn.bingo.common.menu.MenuEntityStats
+import me.jfenn.bingo.common.menu.lifecycle.MenuEntityStats
 import me.jfenn.bingo.common.menu.RuntimeLobbyController
 import me.jfenn.bingo.common.options.BingoOptions
 import me.jfenn.bingo.common.scoreboard.ResetScoreboardService
