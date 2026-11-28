@@ -16,6 +16,7 @@ import me.jfenn.bingo.platform.IPlayerManager
 import me.jfenn.bingo.platform.event.IEventBus
 import org.slf4j.Logger
 import java.time.Instant
+import java.util.Collections
 import java.util.concurrent.CompletableFuture
 import kotlin.math.absoluteValue
 import kotlin.math.max
@@ -26,10 +27,11 @@ import kotlin.math.min
  */
 internal class SpawnPreloadingController(
     events: ScopedEvents,
-    eventBus: IEventBus,
+    private val eventBus: IEventBus,
     private val state: BingoState,
     private val config: BingoConfig,
     private val spawnService: SpawnService,
+    private val chestService: ChestService,
     private val serverTaskExecutor: IExecutors.IServerTaskExecutor,
     private val playerManager: IPlayerManager,
     private val packet: ServerPacketEvents,
@@ -38,6 +40,38 @@ internal class SpawnPreloadingController(
 ) : BingoComponent() {
 
     private var chunkFutureList: List<CompletableFuture<*>> = emptyList()
+
+    /** Total number of chunks being preloaded, used as the progress bar denominator. */
+    private var chunkTotal: Int = 0
+
+    /**
+     * How many chunk generations may be in flight at once. Chunk generation is CPU-bound, so
+     * overlapping a couple of requests per core is enough to keep the worker pool busy without
+     * queuing the entire spawn area at once.
+     */
+    private val maxConcurrentChunkLoads = Runtime.getRuntime().availableProcessors().times(2)
+
+    /**
+     * Find the team spawnpoints (and their chests) and move on to [GameState.PRELOADING].
+     *
+     * [SpawnService.createSpawnpoints] recomputes the spawn positions and
+     * [ChestService.createChestSpawnpoints] skips teams that already have a chest, so this is safe
+     * to run again after a restart mid-STARTING.
+     */
+    private fun beginPreloading() {
+        if (state.isLobbyMode) {
+            spawnService.createSpawnpoints()
+                .thenRunAsync({
+                    chestService.createChestSpawnpoints()
+
+                    if (state.state == GameState.STARTING) {
+                        state.changeState(eventBus, GameState.PRELOADING)
+                    }
+                }, serverTaskExecutor)
+        } else {
+            state.changeState(eventBus, GameState.PRELOADING)
+        }
+    }
 
     private fun isWithinDistance(dx: Int, dz: Int, distance: Int): Boolean {
         val deltaX = max(0, dx.absoluteValue - 1)
@@ -49,6 +83,15 @@ internal class SpawnPreloadingController(
     }
 
     init {
+        // The STARTING -> PRELOADING progression is driven from here (not from GameService.start)
+        // because the state is persisted as soon as it changes: if the server crashes while the
+        // spawnpoints are being generated, the save is left in STARTING and ScopeManager replays
+        // the state event on boot - re-firing this listener, which resumes the round.
+        events.onEnter(GameState.STARTING) {
+            if (state.state != GameState.STARTING) return@onEnter
+            beginPreloading()
+        }
+
         events.onEnter(GameState.PRELOADING) {
             val startedLoading = Instant.now()
 
@@ -74,24 +117,37 @@ internal class SpawnPreloadingController(
                 .toSet()
 
             log.info("[SpawnPreloadingController] Pre-generating ${chunks.size} chunks within a view distance of ${viewDistance}...")
-            val futures = chunks.map { chunk ->
-                world.getChunkAsync(chunk)
-                    .whenComplete { _, _ ->
-                        log.debug(
-                            "[SpawnPreloadingController] Finished chunk {} in {}",
-                            chunk,
-                            Instant.now() - startedLoading
-                        )
-                    }
-            }
 
+            val chunkList = chunks.toList()
+            chunkTotal = chunkList.size
+            // Requests are issued through a bounded number of sequential chains instead of all at
+            // once: every chunk is a full-status generation, and firing hundreds of them at the
+            // same time spikes both the chunk worker queue and the heap right when a round starts.
+            val futures = Collections.synchronizedList(mutableListOf<CompletableFuture<*>>())
             chunkFutureList = futures
-            CompletableFuture.allOf(*futures.toTypedArray())
-                .whenCompleteAsync({ _, _ ->
-                    log.info("[SpawnPreloadingController] Finished preloading spawn chunks in ${Instant.now() - startedLoading}")
-                    chunkFutureList = emptyList()
+
+            BoundedChunkLoader.schedule(
+                chunks = chunkList,
+                concurrency = maxConcurrentChunkLoads,
+                executor = serverTaskExecutor,
+                issued = futures,
+            ) { chunk ->
+                val chunkStart = Instant.now()
+                world.getChunkAsync(chunk).thenApply {
+                    log.debug(
+                        "[SpawnPreloadingController] Finished chunk {} in {}",
+                        chunk,
+                        Instant.now() - chunkStart
+                    )
+                }
+            }.whenCompleteAsync({ _, _ ->
+                log.info("[SpawnPreloadingController] Finished preloading ${chunkList.size} chunks in ${Instant.now() - startedLoading}")
+                chunkFutureList = emptyList()
+                chunkTotal = 0
+                if (state.state == GameState.PRELOADING) {
                     state.changeState(eventBus, GameState.LOADING)
-                }, serverTaskExecutor)
+                }
+            }, serverTaskExecutor)
         }
 
         events.onGameTick {
@@ -102,10 +158,12 @@ internal class SpawnPreloadingController(
                 // asynchronously here, so the exact progress is not yet known.
                 GameState.STARTING -> sendLoadingProgress(doneCount = 0, totalCount = 0)
                 GameState.PRELOADING -> {
-                    if (chunkFutureList.isEmpty()) return@onGameTick
+                    if (chunkTotal == 0) return@onGameTick
+                    // the pending requests are added as the worker chains advance, so progress is
+                    // counted against the total number of chunks rather than the issued futures
                     sendLoadingProgress(
                         doneCount = chunkFutureList.count { it.isDone },
-                        totalCount = chunkFutureList.size,
+                        totalCount = chunkTotal,
                     )
                 }
                 else -> return@onGameTick

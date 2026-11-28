@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.google.gson.JsonNull
 import com.mojang.serialization.JsonOps
+import me.jfenn.bingo.mixinhandler.ItemStackMixinAccess
 import me.jfenn.bingo.platform.text.IText
 import me.jfenn.bingo.platform.item.*
 import net.minecraft.core.component.DataComponentType
@@ -128,7 +129,19 @@ class ItemStackFactory(
     }
 
     override fun forStack(stack: ItemStack?): IItemStack {
-        return stack?.let(::ItemStackImpl) ?: emptyStack
+        if (stack == null) return emptyStack
+
+        // Reuse the wrapper cached on the stack (see ItemStackMixin): inventory scans wrap every
+        // stack several times per second, and each wrap used to allocate a new object.
+        // The cast goes through Any so the compiler does not fold it away - ItemStack only
+        // implements this interface once the mixin has been applied at runtime.
+        val access = (stack as Any) as? ItemStackMixinAccess
+        if (access != null) {
+            access.exbingoGetItemStackImpl()?.let { return it }
+            return ItemStackImpl(stack).also { access.exbingoSetItemStackImpl(it) }
+        }
+
+        return ItemStackImpl(stack)
     }
 
     override fun createFilledMap(): IFilledMap = createStack(Items.FILLED_MAP, 1).asFilledMap()!!

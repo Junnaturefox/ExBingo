@@ -10,6 +10,7 @@
     "GameRuleOverrideMixin",
     "HungerManagerAccessor",
     "InteractionEntityMixin",
+    "ItemStackMixin",
     "LevelPropertiesAccessor",
     "MapStateAccessor",
     "MinecraftServerAccessor",

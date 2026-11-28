@@ -35,10 +35,7 @@ import java.time.Instant
 internal class GameService(
     private val state: BingoState,
     private val options: BingoOptions,
-    private val server: MinecraftServer,
     private val eventBus: IEventBus,
-    private val spawnService: SpawnService,
-    private val chestService: ChestService,
     private val teamService: TeamService,
     private val configService: ConfigService,
     private val cardService: CardService,
@@ -172,21 +169,10 @@ internal class GameService(
         }
 
         // change to the starting state (ensures that start cannot be used again, if this is async)
+        // The state is persisted immediately, so the spawnpoint/preloading work for it is driven by
+        // SpawnPreloadingController.onEnter(STARTING) instead of running here: that way a server
+        // that crashes during STARTING resumes the round on its next boot instead of getting stuck.
         state.changeState(eventBus, GameState.STARTING)
-
-        if (state.isLobbyMode) {
-            // spread player teams to spawnpoint
-            spawnService.createSpawnpoints()
-                .thenRunAsync({
-                    chestService.createChestSpawnpoints()
-
-                    // change to the loading state (until all players have loaded terrain)
-                    state.changeState(eventBus, GameState.PRELOADING)
-                }, server)
-        } else {
-            // change to the loading state (until all players have loaded terrain)
-            state.changeState(eventBus, GameState.PRELOADING)
-        }
 
         broadcastStart()
 

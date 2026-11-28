@@ -12,7 +12,6 @@ import me.jfenn.bingo.platform.*
 import me.jfenn.bingo.platform.event.IEventBus
 import net.minecraft.ChatFormatting
 import org.slf4j.Logger
-import kotlin.math.ceil
 
 internal class TeamService(
     private val log: Logger,
@@ -113,6 +112,9 @@ internal class TeamService(
         val teams = data.teamPresets.entries
             .shuffled()
             .map { BingoTeam.fromPreset(it.key, it.value) }
+            // only the requested number of teams may participate: without this, asking for 2 teams
+            // still registered every preset team (8 on a default server)
+            .take(numTeams)
             .toMutableList()
 
         // If numTeams is more than the default team list, create temporary teams until full
@@ -141,19 +143,13 @@ internal class TeamService(
         val players = playerManager.getPlayers()
             .filter { !state.playersSpectatingIds.contains(it.uuid) }
 
-        if (players.isNotEmpty()) {
-            val playersPerTeam = ceil(players.size / numTeams.coerceIn(1, teams.size).toDouble())
-                .toInt()
-                .coerceAtLeast(1)
-
-            players.shuffled()
-                .chunked(playersPerTeam)
-                .forEachIndexed { i, teamPlayers ->
-                    val teamTemplate = teams[i % teams.size]
-
-                    for (teamPlayer in teamPlayers)
-                        joinTeam(teamPlayer, teamTemplate)
-                }
+        if (players.isNotEmpty() && teams.isNotEmpty()) {
+            // Assign round-robin instead of chunking by ceil(players / teams): chunking left the
+            // remainder in a single team (7 players / 3 teams used to become 3, 3, 1), and it
+            // also crashed on chunked(0) when nobody was online.
+            players.shuffled().forEachIndexed { index, teamPlayer ->
+                joinTeam(teamPlayer, teams[TeamShuffler.teamIndex(index, teams.size)])
+            }
         }
     }
 

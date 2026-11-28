@@ -29,9 +29,12 @@ class ClientImpl : IClient {
         get() {
             val mouse = client.mouseHandler
             val window = client.window
+            // Vanilla scales the GLFW cursor position by the framebuffer size (getScreenWidth),
+            // not the window size: on macOS/Retina (and any DPI-scaled display) the two differ by
+            // the scale factor, which used to offset every custom HUD click.
             return Vector2i(
-                (mouse.xpos() * window.guiScaledWidth.toDouble() / window.width.toDouble()).toInt(),
-                (mouse.ypos() * window.guiScaledHeight.toDouble() / window.height.toDouble()).toInt(),
+                (mouse.xpos() * window.guiScaledWidth.toDouble() / window.screenWidth.toDouble()).toInt(),
+                (mouse.ypos() * window.guiScaledHeight.toDouble() / window.screenHeight.toDouble()).toInt(),
             )
         }
 

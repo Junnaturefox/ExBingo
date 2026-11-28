@@ -33,9 +33,10 @@ class DrawService(
             val client = Minecraft.getInstance()
             val mouse = client.mouseHandler
             val window = client.window
+            // Must match vanilla MouseHandler: divide by the framebuffer size, not the window size
             return Vector2i(
-                (mouse.xpos() * window.guiScaledWidth.toDouble() / window.width.toDouble()).toInt(),
-                (mouse.ypos() * window.guiScaledHeight.toDouble() / window.height.toDouble()).toInt(),
+                (mouse.xpos() * window.guiScaledWidth.toDouble() / window.screenWidth.toDouble()).toInt(),
+                (mouse.ypos() * window.guiScaledHeight.toDouble() / window.screenHeight.toDouble()).toInt(),
             )
         }
 

@@ -4,6 +4,7 @@ import me.jfenn.bingo.common.MOD_ID
 import me.jfenn.bingo.common.config.ConfigService
 import me.jfenn.bingo.common.lobby.LobbyModeTarget
 import me.jfenn.bingo.common.scope.BingoComponent
+import me.jfenn.bingo.mixinhandler.LobbyDatapackRequest
 import me.jfenn.bingo.platform.IModEnvironment
 import org.slf4j.Logger
 import kotlin.io.path.deleteIfExists
@@ -40,6 +41,15 @@ class ServerDatapackManager(
             }
 
             val datapackPath = environment.gameDir.resolve("$worldName/datapacks/$MOD_ID.zip")
+
+            // tell the pack-configuration mixin whether the lobby datapack has to be enabled: the
+            // server reads its enabled pack list from level.dat when it starts, so an installed
+            // datapack alone does not guarantee that the lobby dimension loads
+            LobbyDatapackRequest.packId = if (server.isLobbyMode && LobbyModeTarget.appliesTo(server, worldName)) {
+                "file/$MOD_ID.zip"
+            } else {
+                null
+            }
 
             when {
                 !LobbyModeTarget.appliesTo(server, worldName) -> {
