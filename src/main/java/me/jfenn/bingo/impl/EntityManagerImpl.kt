@@ -58,7 +58,8 @@ class EntityManagerImpl(
 
     override fun <T : IEntity> createEntity(type: EntityType<T>, world: ServerLevel): T {
         val mcType = type.toMinecraftType()
-        val entity = mcType.create(world)!!
+        val entity = mcType.create(world)
+            ?: error("Unable to create entity of type $mcType in $world")
         val impl = forEntity(entity)
         return (@Suppress("UNCHECKED_CAST") (impl as T))
     }

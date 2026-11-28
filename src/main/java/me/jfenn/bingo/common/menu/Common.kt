@@ -156,7 +156,9 @@ internal open class MenuComponent(
 }
 
 internal fun MenuComponent.buildTooltip(title: StringKey, formatting: ChatFormatting = ChatFormatting.GREEN): List<IText> {
-    val description = StringKey.entries.find { it.key == "${title.key}.tooltip" }!!
+    // not every config key has a `.tooltip` string; falling back to the title keeps the menu
+    // usable instead of crashing the whole lobby when a translation is missing
+    val description = StringKey.entries.find { it.key == "${title.key}.tooltip" } ?: title
     return buildList {
         add(text.string(title).formatted(formatting))
         add(text.string(description))

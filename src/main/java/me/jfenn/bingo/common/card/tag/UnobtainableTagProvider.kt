@@ -26,7 +26,8 @@ internal class UnobtainableTagProvider(
             .filterIsInstance<BingoObjective.ItemEntry>()
             // itemStack should already be initialized if found
             .filterNot {
-                data.obtainableItems.contains(it.itemStack!!.identifier.toString())
+                val id = it.itemStack?.identifier?.toString() ?: return@filterNot false
+                data.obtainableItems.contains(id)
             }
             .map { it.id }
             .toSet()

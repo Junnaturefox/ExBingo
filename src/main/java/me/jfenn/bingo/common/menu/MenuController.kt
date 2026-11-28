@@ -81,7 +81,10 @@ internal class MenuController(
 
     private var menu: MenuInstance? = null
     private var suppressNextPregameSpawn = false
-    private val koinScope = scopeManager.getScope(server)!!
+    // the lobby menu only exists while the bingo scope is alive; report that clearly instead of
+    // throwing a bare NullPointerException from a component constructor
+    private val koinScope = scopeManager.getScope(server)
+        ?: error("MenuController was created without a bingo scope for the running server")
     private val teamPickerChunks = mutableSetOf<ChunkPos>()
 
     // Guards against overlapping deferred spawn attempts: spawnLobby may reschedule itself for a

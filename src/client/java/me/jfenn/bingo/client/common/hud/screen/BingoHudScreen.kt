@@ -376,7 +376,7 @@ internal class BingoHudScreen(
             helper.addDrawable(cardsWidget)
         }
         if (scoresWidget != null && tab == GameOverPacket.EndScreenTab.SCORES) {
-            helper.addDrawableChild(scoresWidget.widget!!)
+            scoresWidget.widget?.let { helper.addDrawableChild(it) }
         }
 
         helper.addDrawable(sidebarDrawable)
@@ -404,7 +404,7 @@ internal class BingoHudScreen(
         }
 
         messagesWidgetImpl.resize()
-        helper.addDrawableChild(messagesWidget.widget!!)
+        messagesWidget.widget?.let { helper.addDrawableChild(it) }
     }
 
     override fun resize(width: Int, height: Int) {

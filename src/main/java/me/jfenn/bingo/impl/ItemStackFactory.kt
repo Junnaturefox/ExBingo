@@ -148,13 +148,21 @@ class ItemStackFactory(
         return ItemStackImpl(stack)
     }
 
-    override fun createFilledMap(): IFilledMap = createStack(Items.FILLED_MAP, 1).asFilledMap()!!
+    override fun createFilledMap(): IFilledMap = requireNotNull(createStack(Items.FILLED_MAP, 1).asFilledMap()) {
+        "Items.FILLED_MAP stack does not implement IFilledMap"
+    }
 
-    override fun createFireworkRocket(): IFireworkRocket = createStack(Items.FIREWORK_ROCKET, 1).asFireworkRocket()!!
+    override fun createFireworkRocket(): IFireworkRocket = requireNotNull(createStack(Items.FIREWORK_ROCKET, 1).asFireworkRocket()) {
+        "Items.FIREWORK_ROCKET stack does not implement IFireworkRocket"
+    }
 
-    override fun createWrittenBook(): IWrittenBook = createStack(Items.WRITTEN_BOOK, 1).asWrittenBook()!!
+    override fun createWrittenBook(): IWrittenBook = requireNotNull(createStack(Items.WRITTEN_BOOK, 1).asWrittenBook()) {
+        "Items.WRITTEN_BOOK stack does not implement IWrittenBook"
+    }
 
-    override fun createPlayerHead(): IPlayerHead = createStack(Items.PLAYER_HEAD, 1).asPlayerHead()!!
+    override fun createPlayerHead(): IPlayerHead = requireNotNull(createStack(Items.PLAYER_HEAD, 1).asPlayerHead()) {
+        "Items.PLAYER_HEAD stack does not implement IPlayerHead"
+    }
 
     open inner class ItemStackImpl(
         override val stack: ItemStack,

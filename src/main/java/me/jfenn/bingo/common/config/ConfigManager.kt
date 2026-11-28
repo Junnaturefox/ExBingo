@@ -132,7 +132,8 @@ fun IConfigManager.readStream(
     file: String,
     shouldWriteDefault: Boolean = true,
     default: () -> InputStream = {
-        javaClass.getResourceAsStream("/$MOD_ID_BINGO/$file")!!
+        javaClass.getResourceAsStream("/$MOD_ID_BINGO/$file")
+            ?: error("Missing bundled config resource /$MOD_ID_BINGO/$file")
     },
 ): InputStream {
     val filePath = configDir.resolve("$MOD_ID_BINGO/$file")

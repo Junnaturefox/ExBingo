@@ -80,12 +80,13 @@ internal class MapRenderService(
     }
 
     fun validateItems(items: List<String>) {
+        val log = LoggerFactory.getLogger(MOD_ID)
         for (item in items) {
-            try {
-                readTileImage(item)!!.close()
-            } catch (e: Throwable) {
-                val log = LoggerFactory.getLogger(MOD_ID)
+            val stream = readTileImage(item)
+            if (stream == null) {
                 log.warn("Missing item image: ${item.replace(':', '/')}.png")
+            } else {
+                stream.close()
             }
         }
     }
@@ -93,19 +94,17 @@ internal class MapRenderService(
     private fun readTileImage(itemPath: String): InputStream? {
         val namespace = itemPath.substringBefore(':')
         val path = itemPath.substringAfter(':')
-        return try {
-            configManager.readStream("images/${path}.png", false) {
-                MapRenderService::class.java.getResourceAsStream("/$MOD_ID_BINGO/images/${path}.png")!!
-            }
-        } catch (e: NullPointerException) {
-            null
-        } ?: try {
-            configManager.readStream("images/$namespace/${path}.png", false) {
-                MapRenderService::class.java.getResourceAsStream("/$MOD_ID_BINGO/images/$namespace/${path}.png")!!
-            }
-        } catch (e: NullPointerException) {
-            null
+        // try the flat path first, then the namespaced one; a missing image is not an error here
+        for (candidate in listOf("images/${path}.png", "images/$namespace/${path}.png")) {
+            val stream = runCatching {
+                configManager.readStream(candidate, false) {
+                    MapRenderService::class.java.getResourceAsStream("/$MOD_ID_BINGO/$candidate")
+                        ?: throw java.io.FileNotFoundException("Missing bundled image: $candidate")
+                }
+            }.getOrNull()
+            if (stream != null) return stream
         }
+        return null
     }
 
     class BingoTileImage(

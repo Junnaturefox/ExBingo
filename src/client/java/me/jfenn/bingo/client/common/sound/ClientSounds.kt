@@ -26,6 +26,6 @@ internal class ClientSounds(
         soundManager.createUnregistered(it.id)
     }
 
-    operator fun get(key: Key) = soundEvents[key]!!
+    operator fun get(key: Key) = soundEvents.getValue(key)
 
 }
