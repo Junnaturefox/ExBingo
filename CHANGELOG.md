@@ -15,6 +15,49 @@ This file records the release notes for ExBingo. New releases go on top, kept bi
 
 ——————
 
+## 1.2.1 - 2026-11-28
+
+- Minecraft: 1.21.1
+- Mod Loader: NeoForge 21.1.234
+- License: LGPL-3.0-only
+- Release Type: Bug fix
+
+### 中文更新日志
+
+#### 修复内容
+
+- **对局进度现在真的会跟着世界存档一起保存了**。1.2.0 的更新说明里写了这一点，但那条保存钩子当时并没有接上，所以实际上只有切换阶段和关服时才会写盘；现在服务器自动存档、`/save-all` 和强制关服都会保存你的进度。
+- 修复「用旧版本打开新版本的存档会把进度写没」的问题。现在遇到比当前版本更新的存档，游戏会把它原样保留成一个 `.newer` 文件（不会解析、也不会覆盖），并用一份全新配置继续运行；升级回新版本后把文件名改回去即可找回。
+- 修复大厅菜单偶尔「左半边点不动」的问题。上一局残留的菜单实体（有时在世界加载完成后才出现）现在会被稳定清理掉，不会继续挡在真实按钮前面。
+- 修复关闭或删除大厅世界后，队伍选择占用的区块记录会累积下来、可能作用到下一个大厅世界的问题。
+- 修复部分情况下 Xaero 小地图的回大厅缓存清理没有触发的问题（当前版本客户端只接收新版数据包，而清理逻辑只监听了旧版）。
+- 修复服务器重启或重新开图后，个别玩家可能卡在「加载中」的问题。地形加载的判定数据现在按服务器实例隔离，不会带上一次运行留下的状态。
+
+#### 兼容性
+
+- **只与当前版本和上一版（1.2.0）的客户端互通**。更早版本的客户端仍然能进服游玩，但收不到新版界面数据，只会退化为基础提示（例如结算提示改为聊天/标题显示）；反过来，旧服务器也读不到新客户端的新数据包。请让服务端与客户端使用同一版本。
+- 仍为 Minecraft 1.21.1 / NeoForge 21.1.234，存档与配置文件可直接沿用（第一次启动会自动把存档升级为新格式）。
+- 与 JEI、Simple Voice Chat、Xaero 小地图、Curios 的联动行为不变。
+
+### English Changelog
+
+#### Fixed
+
+- **Round progress is now actually saved together with the world save.** The 1.2.0 notes claimed this, but the save hook was never wired up, so progress was only written on phase changes and shutdown; server autosaves, `/save-all` and a forced shutdown now all save your progress.
+- Fixed older builds overwriting the progress of a save written by a newer build. Such a save is now left untouched and preserved as a `.newer` file (never parsed, never overwritten) while the game runs on fresh defaults; rename it back after upgrading to recover it.
+- Fixed the lobby menu occasionally not responding on its left half. Menu entities left over from the previous round (sometimes appearing only after the world finished loading) are now cleaned up reliably instead of sitting in front of the real buttons.
+- Fixed the chunk records held for the team picker piling up after the lobby world was closed or deleted and potentially affecting the next lobby world.
+- Fixed Xaero's Minimap cache cleanup not triggering in some cases (current clients only receive the new packet, while the cleanup only listened for the old one).
+- Fixed individual players occasionally getting stuck on "loading" after a server restart or world regeneration. The terrain-loading signals are now isolated per server instance, so a previous run's state is never reused.
+
+#### Compatibility
+
+- **Only the current and the previous (1.2.0) client versions interoperate.** Older clients can still join and play, but they do not receive the new UI data and fall back to basic messages (e.g. results shown as chat/title instead of the results screen); the same applies in reverse for old servers reading new clients. Run the same version on both sides.
+- Still Minecraft 1.21.1 / NeoForge 21.1.234; saves and configs carry over (the save format is upgraded automatically on first launch).
+- JEI, Simple Voice Chat, Xaero's Minimap and Curios integrations behave as before.
+
+——————
+
 ## 1.2.0 - 2026-11-28
 
 - Minecraft: 1.21.1
