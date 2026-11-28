@@ -46,12 +46,6 @@ internal class ScorePacketReceiver(
             )
         }
 
-        eventBus.register(clientPacketEvents.gameOverV1, ::onGameOver)
-        eventBus.register(clientPacketEvents.gameOverV2, ::onGameOver)
-        eventBus.register(clientPacketEvents.gameOverV3, ::onGameOver)
-        eventBus.register(clientPacketEvents.gameOverV4, ::onGameOver)
-        eventBus.register(clientPacketEvents.gameOverV5, ::onGameOver)
-        eventBus.register(clientPacketEvents.gameOverV6, ::onGameOver)
         eventBus.register(clientPacketEvents.gameOverV7, ::onGameOver)
         eventBus.register(clientPacketEvents.gameOverV8, ::onGameOver)
 

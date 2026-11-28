@@ -134,20 +134,13 @@ internal class GameOverController(
             )
 
             when {
+                // only the current and the previous packet version are kept; clients that know
+                // older versions fall back to the vanilla dialog below
                 packetManager.gameOverV8.send(player.player, packet) -> {}
                 packetManager.gameOverV7.send(player.player, packet) -> {}
-                packetManager.gameOverV6.send(player.player, packet) -> {}
-                packetManager.gameOverV5.send(player.player, packet) -> {}
-                packetManager.gameOverV4.send(player.player, packet) -> {}
-                packetManager.gameOverV3.send(player.player, packet) -> {}
-                isUpdate -> {
-                    // if this is an update packet, this should only be sent to v3 clients
-                    // (for v2/below, this would re-open the end screen on each update)
-                }
-                packetManager.gameOverV2.send(player.player, packet) -> {}
-                packetManager.gameOverV1.send(player.player, packet) -> {
-                    Sounds.playGameOver(player)
-                }
+                // the dialog would re-open the end screen on every update packet, so it is only
+                // opened once (the same guard the removed v2-and-below branch used)
+                isUpdate -> {}
                 openGameOverDialog(player, packet) -> {
                     Sounds.playGameOver(player)
                 }

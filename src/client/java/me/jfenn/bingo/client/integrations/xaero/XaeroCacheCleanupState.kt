@@ -17,8 +17,6 @@ internal class XaeroCacheCleanupState(
     private var shouldCleanOnDisconnect = false
 
     init {
-        eventBus.register(packetEvents.readyUpdateV1, ::onReadyUpdate)
-        eventBus.register(packetEvents.readyUpdateV2, ::onReadyUpdate)
         eventBus.register(packetEvents.readyUpdateV3, ::onReadyUpdate)
 
         eventBus.register(ClientGameEndEvent) {

@@ -57,62 +57,6 @@ data class ScoreMessagePacket(
         )
     }
 
-    object V1 : PacketConverter<ScoreMessagePacket> {
-        override val id: ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID_BINGO, "score_message")
-
-        override fun toPacketBuf(source: ScoreMessagePacket, dest: IPacketBuf) {
-            if (source.player != null) {
-                dest.writeBoolean(true)
-                dest.writeString(source.player.uuid.toString())
-                dest.writeString(source.player.name)
-            } else {
-                dest.writeBoolean(false)
-            }
-
-            dest.writeBoolean(source.isViewerOnTeam)
-
-            if (source.tile?.image?.item != null) {
-                dest.writeBoolean(true)
-                dest.writeItemStack(source.tile.image.item)
-            } else {
-                dest.writeBoolean(false)
-            }
-
-            dest.writeString(source.messageType?.name ?: "")
-            dest.writeText(source.message)
-        }
-
-        override fun fromPacketBuf(buf: IPacketBuf): ScoreMessagePacket {
-            val player = if (buf.readBoolean()) {
-                PlayerProfile(
-                    uuid = UUID.fromString(buf.readString()),
-                    name = buf.readString(),
-                )
-            } else null
-            val isViewerOnTeam = buf.readBoolean()
-            val item = if (buf.readBoolean()) buf.readItemStack() else null
-            val messageType = try {
-                MessageType.valueOf(buf.readString())
-            } catch (e: Throwable) {
-                null
-            }
-            val message = buf.readText()
-            return ScoreMessagePacket(
-                player = player,
-                isViewerOnTeam = isViewerOnTeam,
-                tile = CardTile(
-                    image = CardTileImage(
-                        item = item,
-                        texture = null,
-                    ),
-                    decoration = null,
-                ),
-                messageType = messageType,
-                message = message,
-            )
-        }
-    }
-
     object V2 : PacketConverter<ScoreMessagePacket> {
         override val id: ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID_BINGO, "score_message_v2")
 

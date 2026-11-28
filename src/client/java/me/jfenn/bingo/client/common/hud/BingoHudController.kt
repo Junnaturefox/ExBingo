@@ -577,7 +577,6 @@ internal class BingoHudController(
             }
         }
 
-        eventBus.register(packetEvents.scoreMessageV1, ::onScoreMessage)
         eventBus.register(packetEvents.scoreMessageV2, ::onScoreMessage)
         eventBus.register(packetEvents.scoreMessageV3, ::onScoreMessage)
 
@@ -598,17 +597,9 @@ internal class BingoHudController(
             eventBus.emit(HudStateChangedEvent, Unit)
         }
 
-        eventBus.register(packetEvents.gameOverV1, ::onGameOver)
-        eventBus.register(packetEvents.gameOverV2, ::onGameOver)
-        eventBus.register(packetEvents.gameOverV3, ::onGameOver)
-        eventBus.register(packetEvents.gameOverV4, ::onGameOver)
-        eventBus.register(packetEvents.gameOverV5, ::onGameOver)
-        eventBus.register(packetEvents.gameOverV6, ::onGameOver)
         eventBus.register(packetEvents.gameOverV7, ::onGameOver)
         eventBus.register(packetEvents.gameOverV8, ::onGameOver)
 
-        eventBus.register(packetEvents.readyUpdateV1, ::onReadyUpdate)
-        eventBus.register(packetEvents.readyUpdateV2, ::onReadyUpdate)
         eventBus.register(packetEvents.readyUpdateV3, ::onReadyUpdate)
         eventBus.register(packetEvents.readyUpdateV4, ::onReadyUpdate)
 

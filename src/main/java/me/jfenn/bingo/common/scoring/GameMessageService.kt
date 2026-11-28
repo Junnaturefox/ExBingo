@@ -199,7 +199,6 @@ internal class GameMessageService(
                 when {
                     packets.scoreMessageV3.send(player, scoreMessagePacket) -> {}
                     packets.scoreMessageV2.send(player, scoreMessagePacket) -> {}
-                    packets.scoreMessageV1.send(player, scoreMessagePacket) -> {}
                     else -> player.sendMessage(packet.message)
                 }
             }

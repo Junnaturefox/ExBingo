@@ -168,8 +168,6 @@ internal class ReadyController(
             when {
                 packets.readyUpdateV4.send(player, packet) -> {}
                 packets.readyUpdateV3.send(player, packet) -> {}
-                packets.readyUpdateV2.send(player, packet) -> {}
-                packets.readyUpdateV1.send(player, packet) -> {}
                 packet.isRunning -> {
                     val message = when {
                         !isPlayerReady -> text.string(
@@ -226,11 +224,7 @@ internal class ReadyController(
                     subtitle = null,
                 )
                 for (player in playerManager.getPlayers()) {
-                    when {
-                        packets.readyUpdateV3.send(player, packet) -> {}
-                        packets.readyUpdateV2.send(player, packet) -> {}
-                        packets.readyUpdateV1.send(player, packet) -> {}
-                    }
+                    packets.readyUpdateV3.send(player, packet)
                 }
             }
         }
