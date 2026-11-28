@@ -8,11 +8,9 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.serializer
 import me.jfenn.bingo.common.event.model.StateChangedEvent
-import me.jfenn.bingo.common.utils.decodeFromUtf8Stream
 import me.jfenn.bingo.mixinhandler.ServerEventMixinHandler
 import me.jfenn.bingo.platform.IJsonSerializers
 import me.jfenn.bingo.platform.IPersistentStateManager
@@ -49,6 +47,8 @@ class PersistentStateManager(
         prettyPrint = true
     }
     private val registeredTypes = mutableMapOf<String, Type<*>>()
+    /** Paths that must never be overwritten because their content could not be preserved. */
+    private val writeBlockedPaths = java.util.Collections.synchronizedSet(mutableSetOf<Path>())
     private val writeOptions = arrayOf<OpenOption>(
         StandardOpenOption.SYNC,
         StandardOpenOption.WRITE,
@@ -86,12 +86,14 @@ class PersistentStateManager(
                 type.value = readFromPath(path, type.serializer)
             } catch (e: Throwable) {
                 logger.error("Error decoding persistent state ${type.id}", e)
+                if (e is NewerStateFormatException) quarantineNewerFile(e)
                 if (Files.exists(backupPath)) {
                     try {
                         logger.warn("Reading persistent state ${type.id} from backup...")
                         type.value = readFromPath(backupPath, type.serializer)
                     } catch (backupError: Throwable) {
                         logger.error("Error decoding backup persistent state ${type.id}", backupError)
+                        if (backupError is NewerStateFormatException) quarantineNewerFile(backupError)
                     }
                 }
             }
@@ -107,6 +109,16 @@ class PersistentStateManager(
         require(type is Type)
         val path = type.path
         val backupPath = backupPath(path)
+
+        if (path in writeBlockedPaths) {
+            // A newer-format file could not be moved aside; never destroy it with defaults.
+            logger.error(
+                "Refusing to overwrite persistent state '${path.fileName}': it was written by a newer " +
+                    "build and could not be preserved. Upgrade ExBingo to read it, or delete it manually."
+            )
+            return
+        }
+
         var didWrite = false
 
         try {
@@ -153,11 +165,8 @@ class PersistentStateManager(
                 ?: throw IllegalStateException("Persistent state '${path.fileName}' has an unreadable '$STATE_FORMAT_VERSION_KEY'")
             if (version > STATE_FORMAT_VERSION) {
                 // Never parse a newer format with older rules - that would silently mangle the
-                // player's round. The caller falls back to the backup, then to the defaults.
-                throw IllegalStateException(
-                    "Persistent state '${path.fileName}' was written by a newer version " +
-                        "(format $version, supported up to $STATE_FORMAT_VERSION)"
-                )
+                // player's round. The caller quarantines the file and falls back to the backup.
+                throw NewerStateFormatException(path, version)
             }
             element[STATE_KEY]
                 ?: throw IllegalStateException("Persistent state '${path.fileName}' is missing '$STATE_KEY'")
@@ -185,6 +194,31 @@ class PersistentStateManager(
 
     private fun backupPath(path: Path): Path {
         return path.resolveSibling("${path.fileName}.bak")
+    }
+
+    /**
+     * Preserve a state file that was written by a newer build instead of letting the next save
+     * overwrite it with defaults. The original is renamed to `*.newer`; if it cannot be moved the
+     * path is blocked so [put] refuses to write over it.
+     */
+    private fun quarantineNewerFile(error: NewerStateFormatException) {
+        val file = error.file
+        val target = file.resolveSibling("${file.fileName}.newer")
+        try {
+            Files.move(file, target, StandardCopyOption.REPLACE_EXISTING)
+            logger.error(
+                "Persistent state '${file.fileName}' was written by a newer ExBingo build " +
+                    "(format ${error.version}, supported up to $STATE_FORMAT_VERSION). Its data was " +
+                    "preserved as '${target.fileName}'; defaults are used until the mod is upgraded."
+            )
+        } catch (moveError: Throwable) {
+            writeBlockedPaths.add(file)
+            logger.error(
+                "Persistent state '${file.fileName}' is from a newer build and could not be moved " +
+                    "aside; refusing to overwrite it. Upgrade ExBingo, or delete it to start fresh.",
+                moveError,
+            )
+        }
     }
 
     private fun <T : Any> copyCurrentToBackup(path: Path, backupPath: Path, serializer: KSerializer<T>) {
@@ -259,3 +293,11 @@ class PersistentStateManager(
         }
     }
 }
+/** Raised when a state file was written by a newer build than this one. */
+private class NewerStateFormatException(
+    val file: Path,
+    val version: Int,
+) : IllegalStateException(
+    "Persistent state '" + file.fileName + "' uses format " + version +
+        " (supported up to " + STATE_FORMAT_VERSION + ")"
+)

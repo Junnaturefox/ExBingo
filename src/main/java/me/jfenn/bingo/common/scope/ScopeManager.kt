@@ -104,6 +104,10 @@ class ScopeManager(
         }
 
         eventBus.register(ServerEvent.Stopped) { (server) ->
+            // Drop the per-server mixin state first: if the scope is already gone this handler
+            // returns early below, and the registry would otherwise keep the whole server alive.
+            ServerMixinState.clear(server)
+
             val scope = getScope(server) ?: return@register
             log.info("[ScopeManager] Closing server scope...")
             configService.writeOptions(scope.get())
@@ -111,9 +115,6 @@ class ScopeManager(
             eventBus.emit(ScopeStopped, ScopeStopped(scope))
             BingoEvents.CLOSE.invoke(null)
             scope.close()
-            // drop the per-server mixin state (movement/chunk signals, save bridge, ...) with the
-            // scope, so nothing survives into the next server instance
-            ServerMixinState.clear(server)
         }
     }
 }

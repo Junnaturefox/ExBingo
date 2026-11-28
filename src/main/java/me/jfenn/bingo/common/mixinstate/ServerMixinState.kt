@@ -43,6 +43,9 @@ object ServerMixinState {
      */
     internal fun storeFor(key: Any): MixinStateStore = stores.computeIfAbsent(key) { MixinStateStore() }
 
+    /** The store of [server], or `null` when nothing was created (does not create one). */
+    fun peek(server: MinecraftServer): MixinStateStore? = stores[server]
+
     /** Drops every value of [server]'s store. Called when the server's bingo scope closes. */
     fun clear(server: MinecraftServer) {
         stores.remove(server)?.clear()

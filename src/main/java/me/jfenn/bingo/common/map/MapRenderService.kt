@@ -94,14 +94,17 @@ internal class MapRenderService(
     private fun readTileImage(itemPath: String): InputStream? {
         val namespace = itemPath.substringBefore(':')
         val path = itemPath.substringAfter(':')
-        // try the flat path first, then the namespaced one; a missing image is not an error here
+        // try the flat path first, then the namespaced one; only a *missing* image is not an error -
+        // real IO problems must still surface instead of silently turning into a blank tile
         for (candidate in listOf("images/${path}.png", "images/$namespace/${path}.png")) {
-            val stream = runCatching {
+            val stream = try {
                 configManager.readStream(candidate, false) {
                     MapRenderService::class.java.getResourceAsStream("/$MOD_ID_BINGO/$candidate")
                         ?: throw java.io.FileNotFoundException("Missing bundled image: $candidate")
                 }
-            }.getOrNull()
+            } catch (_: java.io.FileNotFoundException) {
+                null
+            }
             if (stream != null) return stream
         }
         return null

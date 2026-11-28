@@ -51,11 +51,9 @@ internal data class BingoCardColors(
             ?: property.get(default)
 
     private fun String.parseIdentifier(): ResourceLocation =
-        // a malformed texture id in the config must not crash the renderer; requireNotNull keeps a
-        // clear message instead of a bare NullPointerException
-        requireNotNull(ResourceLocation.fromNamespaceAndPath(substringBefore(':'), substringAfter(':'))) {
-            "Invalid resource location: $this"
-        }
+        // ResourceLocation.fromNamespaceAndPath never returns null in 1.21.1: it validates instead
+        // (invalid ids throw ResourceLocationException with the offending value in the message)
+        ResourceLocation.fromNamespaceAndPath(substringBefore(':'), substringAfter(':'))
 
     /** Cached per (teamKey, formatting): the card renderer calls this per tile per team per frame. */
     @Transient

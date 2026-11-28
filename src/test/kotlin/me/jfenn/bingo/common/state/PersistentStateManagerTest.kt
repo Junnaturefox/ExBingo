@@ -123,10 +123,11 @@ class PersistentStateManagerTest {
     }
 
     @Test
-    fun `state written by a newer format version is not parsed`() {
+    fun `state written by a newer format version is preserved instead of overwritten`() {
         val future = BingoState(options = BingoOptions(cards = emptyList()))
         future.state = GameState.PLAYING
         writeFutureFormatState(future, formatVersion = 999)
+        val path = savedStatePath()
 
         val manager = createManager(EventBus(LoggerFactory.getLogger("PersistentStateManagerTest")))
         val type = registerBingoState(manager)
@@ -135,6 +136,15 @@ class PersistentStateManagerTest {
         // a downgrade must keep the defaults instead of mangling the file with older rules
         val defaultState = BingoState(options = BingoOptions(cards = emptyList())).state
         assertEquals(defaultState, restored.state)
+
+        // the newer file is moved aside, never parsed and never overwritten
+        val quarantined = path.resolveSibling("${path.fileName}.newer")
+        assertTrue(Files.exists(quarantined), "the newer state file should be preserved as .newer")
+        assertTrue(!Files.exists(path), "the newer state file must not stay at the primary path")
+
+        // and the server keeps working: saving now writes defaults to the primary path
+        manager.put(type, restored)
+        assertTrue(Files.exists(path), "defaults should be written after the newer file was quarantined")
     }
 
     private fun createManager(eventBus: EventBus): PersistentStateManager {

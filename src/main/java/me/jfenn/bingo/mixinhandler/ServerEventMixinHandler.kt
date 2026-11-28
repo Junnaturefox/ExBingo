@@ -27,12 +27,13 @@ object ServerEventMixinHandler {
     }
 
     fun unregister(server: MinecraftServer) {
-        ServerMixinState.of(server).peek(ServerSaveBridge::class.java)?.eventBus = null
+        // peek (not of): unregistering must never create a store that nothing will ever clear
+        ServerMixinState.peek(server)?.peek(ServerSaveBridge::class.java)?.eventBus = null
     }
 
     @JvmStatic
     fun onSaved(server: MinecraftServer) {
-        val bus = ServerMixinState.of(server).peek(ServerSaveBridge::class.java)?.eventBus ?: return
+        val bus = ServerMixinState.peek(server)?.peek(ServerSaveBridge::class.java)?.eventBus ?: return
         runCatching { bus.emit(ServerEvent.Saved, ServerEvent(server)) }
             .onFailure { log.error("[ServerEventMixinHandler] Error handling ServerEvent.Saved:", it) }
     }
