@@ -13,9 +13,6 @@ import org.joml.Vector3d
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
 
-private var statsHash: String = ""
-private var statsFuture: CompletableFuture<Duration?> = CompletableFuture.completedFuture(null)
-
 internal const val MENU_PLAYER_COUNT_HEIGHT = 2*MENU_LINE_HEIGHT + 4*MENU_LINE_PADDING
 
 internal fun MenuComponent.registerPlayerCount(
@@ -26,6 +23,11 @@ internal fun MenuComponent.registerPlayerCount(
     options: BingoOptions = koinScope.get(),
     stats: StatsService = koinScope.get(),
 ) {
+    // per-menu-instance state (was file-level static, so a menu rebuilt on the same tick could read
+    // the previous instance's future and its completion callbacks pointed at a discarded menu)
+    var statsHash: String = ""
+    var statsFuture: CompletableFuture<Duration?> = CompletableFuture.completedFuture(null)
+
     onTick {
         val playerCount = server.playerCount
         val optionsHash = options.getShaHash()

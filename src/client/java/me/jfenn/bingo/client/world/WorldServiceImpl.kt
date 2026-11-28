@@ -68,7 +68,7 @@ class WorldServiceImpl(
     }
 
     private companion object {
-        const val MAX_DELETE_ATTEMPTS = 10
-        const val DELETE_RETRY_DELAY_MS = 200L
+        const val MAX_DELETE_ATTEMPTS = 5
+        const val DELETE_RETRY_DELAY_MS = 100L
     }
 }
