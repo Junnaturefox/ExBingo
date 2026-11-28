@@ -120,7 +120,7 @@ class NeoForgeConfigBridgeTest {
         )
         val tomlValues = listOf("everything=-unobtainable -tedious")
 
-        val merged = NeoForgeConfigBridge.mergeItemFilterPresets(configPresets, tomlValues)
+        val merged = mergeItemFilterPresets(configPresets, tomlValues)
 
         assertEquals(custom, merged["enigmaticlegacyplus"])
         assertEquals(ObjectiveFilterList.fromString("-unobtainable -tedious"), merged["everything"])
