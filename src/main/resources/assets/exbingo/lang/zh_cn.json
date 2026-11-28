@@ -803,6 +803,7 @@
   "bingo.world.return_to_lobby": "返回大厅",
   "bingo.world.keep_playing": "继续游玩",
     "bingo.world.next_round": "下一轮",
+    "bingo.objective.example.your_nose": "你的鼻子",
     "bingo.vote.next_round": "下一轮",
     "bingo.vote.return_to_lobby": "返回大厅",
     "bingo.command.next_round.starting": "正在开始下一轮游戏...",
