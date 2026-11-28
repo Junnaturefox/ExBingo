@@ -11,6 +11,7 @@ import me.jfenn.bingo.common.scoring.ScoreRankingService
 import me.jfenn.bingo.common.scoring.ScoreService
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.state.GameState
+import me.jfenn.bingo.common.ready.ReadyTimerState
 import me.jfenn.bingo.common.team.BingoTeam
 import me.jfenn.bingo.common.team.TeamScore
 import me.jfenn.bingo.common.team.TeamService
@@ -37,6 +38,7 @@ internal class ScoreboardController(
     private val playerManager: IPlayerManager,
     private val playerSettingsService: PlayerSettingsService,
     private val messageService: MessageService,
+    private val readyTimerState: ReadyTimerState,
     private val text: TextProvider,
 ) : BingoComponent() {
 
@@ -219,6 +221,47 @@ internal class ScoreboardController(
                         put("%time%", emptyList())
                     }
 
+                    // "more intuitive" boards: list the teams (with their player counts in the
+                    // lobby, and their final scores once the round is over) and the ready count
+                    put("%teams_list%", buildList {
+                        if (state.state == GameState.PREGAME) {
+                            for (registered in state.getRegisteredTeams().sortedBy { it.id }) {
+                                add(
+                                    text.string(
+                                        StringKey.ScoreboardTeamsList,
+                                        registered.getName(text, playerName = false, symbol = true, bracketed = false, teamNameKey = null),
+                                        registered.players.size,
+                                    ).formatted(registered.textColor)
+                                )
+                            }
+                        } else if (state.state == GameState.POSTGAME || state.state == GameState.STARTING_NEXT_ROUND) {
+                            val sorted = state.getRegisteredTeams().sortedWith(
+                                compareByDescending<BingoTeam> { it.score.items }.thenByDescending { it.score.lines }
+                            )
+                            for (registered in sorted) {
+                                add(
+                                    text.string(
+                                        StringKey.ScoreboardTeamsScore,
+                                        registered.getName(text, playerName = false, symbol = true, bracketed = false, teamNameKey = null),
+                                        registered.score.items,
+                                        registered.score.lines,
+                                    ).formatted(registered.textColor)
+                                )
+                            }
+                        }
+                    })
+
+                    put("%ready%", if (readyTimerState.isRunning) {
+                        listOf(
+                            text.string(
+                                StringKey.ScoreboardReady,
+                                readyTimerState.readyCount,
+                                readyTimerState.playerCount,
+                            ).formatted(ChatFormatting.GREEN)
+                        )
+                    } else {
+                        emptyList()
+                    })
                     put("%team%", listOfNotNull(getTeamName(team)))
                     put("%team_score%", getTeamScore(team).orEmpty())
 

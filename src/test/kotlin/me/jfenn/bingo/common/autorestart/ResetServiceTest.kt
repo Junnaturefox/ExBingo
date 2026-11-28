@@ -68,6 +68,7 @@ class ResetServiceTest {
             persistentStates = persistentStates,
             tickManager = tickManager,
             serverTaskExecutor = serverTaskExecutor,
+            offlinePlayerCache = me.jfenn.bingo.common.team.OfflinePlayerCache(eventBus, playerManager, log),
             log = log,
         )
 
@@ -143,6 +144,7 @@ class ResetServiceTest {
             persistentStates = persistentStates,
             tickManager = tickManager,
             serverTaskExecutor = serverTaskExecutor,
+            offlinePlayerCache = me.jfenn.bingo.common.team.OfflinePlayerCache(eventBus, playerManager, log),
             log = log,
         )
 

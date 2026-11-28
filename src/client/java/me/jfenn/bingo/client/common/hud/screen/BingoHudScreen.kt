@@ -183,6 +183,22 @@ internal class BingoHudScreen(
         }
     }
 
+    private val nextRoundButton = buttonFactory.createNinePatchButton(
+        sliceSize = 8,
+        textureSize = Vector2i(200, 20),
+        texture = "minecraft:bingo/button_game_generic",
+        focusedTexture = "minecraft:bingo/button_game_generic_focused"
+    ).also { button ->
+        button.message = text.string(StringKey.WorldNextRound)
+        button.onClick {
+            // resets the round and starts it again without the intermediate lobby phase
+            client.player.sendCommand(GameCommands.NEXT_ROUND_COMMAND)
+            if (client.isInSingleplayer && shouldPause()) {
+                helper.close()
+            }
+        }
+    }
+
     private val tabsWidget = tabsWidgetFactory.create(GameOverPacket.EndScreenTab.entries.map { text.string(it.title) })
         .apply {
             currentTab = gameOver?.tab?.ordinal ?: 0
@@ -289,6 +305,12 @@ internal class BingoHudScreen(
                 buttonY -= marginY + primaryButton.size.y
                 primaryButton.position = Vector2i(width - interpolatedSidebarWidth + marginX, buttonY)
             }
+
+            if (state.ready?.canSendReady == true) {
+                nextRoundButton.size = Vector2i(sidebarWidth - marginX * 2, 20)
+                buttonY -= marginY + nextRoundButton.size.y
+                nextRoundButton.position = Vector2i(width - interpolatedSidebarWidth + marginX, buttonY)
+            }
         }
 
         messagesWidget.x = width - interpolatedSidebarWidth + marginX
@@ -322,6 +344,10 @@ internal class BingoHudScreen(
 
             if (gameOver.packet.isReturnToLobbyAvailable || state.ready?.canSendReady == true) {
                 helper.addButton(primaryButton)
+            }
+
+            if (state.ready?.canSendReady == true) {
+                helper.addButton(nextRoundButton)
             }
         }
 

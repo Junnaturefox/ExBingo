@@ -104,6 +104,8 @@ internal class TeamService(
     )
 
     fun shuffleTeams(numTeams: Int) {
+        // keep the team count bounded: every team registers a card reference and spawnpoints
+        val clampedNumTeams = numTeams.coerceIn(1, 50)
         // Since teams are being shuffled, all existing teams should be cleared
         // (release the spawnpoint tickets first, otherwise their chunks stay force-loaded)
         state.teams.values.forEach { it.spawnpointTicket?.close() }
@@ -114,11 +116,11 @@ internal class TeamService(
             .map { BingoTeam.fromPreset(it.key, it.value) }
             // only the requested number of teams may participate: without this, asking for 2 teams
             // still registered every preset team (8 on a default server)
-            .take(numTeams)
+            .take(clampedNumTeams)
             .toMutableList()
 
         // If numTeams is more than the default team list, create temporary teams until full
-        for (i in teams.size until numTeams) {
+        for (i in teams.size until clampedNumTeams) {
             val temporaryTeam = BingoTeam(
                 id = "temp_bingo_$i",
                 name = text.string(StringKey.TeamName, "$i"),
@@ -134,12 +136,6 @@ internal class TeamService(
             teams.add(temporaryTeam)
         }
 
-        // Every shuffled team must exist in the game state, even when nobody is online yet:
-        // teams used to be created only as a side effect of joinTeam(), so /bingo shuffleteams
-        // cleared the previous teams and then threw (chunked(0) on an empty player list),
-        // leaving the server with no teams at all.
-        teams.forEach { state.registerTeam(it) }
-
         val players = playerManager.getPlayers()
             .filter { !state.playersSpectatingIds.contains(it.uuid) }
 
@@ -151,6 +147,11 @@ internal class TeamService(
                 joinTeam(teamPlayer, teams[TeamShuffler.teamIndex(index, teams.size)])
             }
         }
+
+        // Register the teams *after* assigning players: joinTeam() skips players whose scoreboard
+        // team already matches the template (the scoreboard membership survives a shuffle), so an
+        // eagerly registered team would leave those players out of the new team's player list.
+        teams.forEach { state.registerTeam(it) }
     }
 
     override fun clearTeams() {

@@ -43,6 +43,11 @@ data class BingoState internal constructor(
     var timeAdjustment: DurationType = Duration.ZERO,
     val options: BingoOptions,
     val restoreOptions: MutableList<RestoreOption> = mutableListOf(),
+    /**
+     * Seed used the next time the worlds are recreated, or null to pick a random one.
+     * Set by `/bingo world seed <seed>` and left alone by [reset].
+     */
+    var worldSeed: Long? = null,
     val teams: MutableMap<BingoTeamKey, BingoTeam> = mutableMapOf(),
     val teamChests: MutableMap<BingoTeamKey, TeamChestData> = mutableMapOf(),
     var previewMap: BingoMap? = null,

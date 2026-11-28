@@ -123,7 +123,7 @@ internal class GameService(
         }
 
         // if the game has already been started, ignore
-        if (state.state != GameState.PREGAME) {
+        if (!state.state.canStartNewRound) {
             warnings.add(text.string(StringKey.CommandStartAlreadyStarted))
             return false
         }

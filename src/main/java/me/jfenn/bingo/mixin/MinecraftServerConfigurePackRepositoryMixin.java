@@ -23,6 +23,10 @@ public class MinecraftServerConfigurePackRepositoryMixin {
             boolean safeMode,
             CallbackInfoReturnable<WorldDataConfiguration> cir
     ) {
+        // safe mode deliberately loads only vanilla + mod packs; forcing anything else there
+        // breaks the fallback that recovers a server whose world failed to load
+        if (safeMode) return;
+
         cir.setReturnValue(DedicatedServerPackConfigDefaults.forceBundleFeaturePack(packRepository, cir.getReturnValue()));
     }
 }

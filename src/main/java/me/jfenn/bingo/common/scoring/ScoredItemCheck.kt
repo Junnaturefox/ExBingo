@@ -588,6 +588,15 @@ internal class ScoredItemCheck(
             cardService.createInitialCards()
         }
 
+        // A "next round" reset goes straight into STARTING_NEXT_ROUND rather than PREGAME, so the
+        // cards have to be regenerated here too - GameService.start() reads getActiveCard(), which
+        // throws when state.reset() has emptied the card list.
+        events.onEnter(GameState.STARTING_NEXT_ROUND) {
+            pendingCardCompletedPackets.clear()
+            pendingTeamWinners.clear()
+            cardService.createInitialCards()
+        }
+
         events.onEnter(GameState.PLAYING) {
             for (card in state.cards) {
                 onCardAssigned(

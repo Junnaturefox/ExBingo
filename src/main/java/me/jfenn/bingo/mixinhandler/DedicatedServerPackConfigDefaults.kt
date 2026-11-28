@@ -88,7 +88,10 @@ object DedicatedServerPackConfigDefaults {
             }
         }
 
-        if (packRepository.isAvailable(BUNDLE_FEATURE_PACK_ID)) {
+        // setSelected() is what actually loads the packs (openAllSelected runs right after this
+        // call), so it must run whenever the selection changed - not only when the bundle pack
+        // happens to be available.
+        if (packRepository.isAvailable(BUNDLE_FEATURE_PACK_ID) || LobbyDatapackRequest.packId != null) {
             packRepository.setSelected(adjusted.dataPacks.enabled)
         }
 

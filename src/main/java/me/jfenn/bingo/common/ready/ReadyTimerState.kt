@@ -25,6 +25,9 @@ class ReadyTimerState {
         totalPlayers = players.map { it.uuid }
     }
 
+    val readyCount get() = readyPlayers.count { it in totalPlayers }
+    val playerCount get() = totalPlayers.size
+
     fun isReady(player: UUID): Boolean = player in readyPlayers
 
     fun setReady(player: UUID, ready: Boolean) {

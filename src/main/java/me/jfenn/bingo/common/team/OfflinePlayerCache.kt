@@ -30,6 +30,11 @@ class OfflinePlayerCache(
         }
     }
 
+    /** Drop every cached handle; call this before the worlds they reference are recreated. */
+    fun clear() {
+        offlinePlayerCache.clear()
+    }
+
     fun getOfflinePlayer(profile: PlayerProfile): IPlayerHandle {
         // If the player is online, return the current player entity
         val onlinePlayer = playerManager.getPlayer(profile.uuid)

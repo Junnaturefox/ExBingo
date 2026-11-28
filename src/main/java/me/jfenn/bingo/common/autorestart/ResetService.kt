@@ -33,12 +33,13 @@ internal class ResetService(
     private val persistentStates: ResetPersistentStates,
     private val tickManager: ITickManager,
     private val serverTaskExecutor: IExecutors.IServerTaskExecutor,
+    private val offlinePlayerCache: me.jfenn.bingo.common.team.OfflinePlayerCache,
     private val log: Logger,
 ) {
     @Volatile
     private var isResetting = false
 
-    fun resetGame() {
+    fun resetGame(newState: GameState = GameState.PREGAME) {
         if (!state.isLobbyMode) {
             log.error("[Reset] resetGame() called outside of lobby mode - ignoring.")
             return
@@ -55,7 +56,7 @@ internal class ResetService(
         isResetting = true
         try {
             tickManager.setFrozen(false)
-            resetGameWorlds()
+            resetGameWorlds(newState)
         } catch (e: Throwable) {
             log.error("[Reset] resetGameWorlds() failed", e)
             throw e
@@ -65,18 +66,25 @@ internal class ResetService(
         }
     }
 
-    private fun resetGameWorlds() = log.measureTime("Resetting game...") {
+    private fun resetGameWorlds(newState: GameState) = log.measureTime("Resetting game...") {
         // Clear scoreboards (otherwise this causes an error when recreated)
+        // capture the seed before state.reset() clears the per-round fields
+        val nextWorldSeed = state.worldSeed ?: Random.Default.nextLong()
+
         log.info("[Reset] Clearing game data")
         teamService.clearTeams()
         scoreboardService.clearScoreboards()
         bossBarService.clearBossBars()
         state.reset()
 
+        // drop cached offline player handles *before* the levels are recreated - they point at the
+        // old (about to be closed) ServerLevels
+        offlinePlayerCache.clear()
+
         if (dynamicWorldRecreateOnReset()) {
             log.info("[Reset] Recreating worlds (fresh world per round)")
             tickManager.setFrozen(false)
-            serverWorldFactory.recreateWorlds(Random.Default.nextLong()) {
+            serverWorldFactory.recreateWorlds(nextWorldSeed) {
                 menuController.prepareLobbyFiles()
             }
             tickManager.setFrozen(false)
@@ -87,7 +95,7 @@ internal class ResetService(
 
         log.info("[Reset] Teleporting players back to lobby")
         menuController.suspendPregameSpawn()
-        state.changeState(eventBus, GameState.PREGAME) // invokes createInitialCards in ScoredItemCheck
+        state.changeState(eventBus, newState) // invokes createInitialCards in ScoredItemCheck
 
         for (player in playerManager.getPlayers()) {
             playerController.restoreLobbyPlayerAfterReset(player)

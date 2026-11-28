@@ -8,7 +8,9 @@
     "%features%",
     "%goal%",
     "%time%",
+    "%ready%",
     "",
+    "%teams_list%",
     "%scores_list%"
   ]
 }

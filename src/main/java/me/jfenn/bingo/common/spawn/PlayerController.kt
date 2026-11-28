@@ -89,7 +89,8 @@ internal class PlayerController(
                 }
                 else -> PlayerGameMode.SPECTATOR
             }
-            GameState.POSTGAME -> when {
+            GameState.POSTGAME,
+            GameState.STARTING_NEXT_ROUND -> when {
                 cardViewService.supportsCardHud(player) -> PlayerGameMode.SPECTATOR
                 else -> PlayerGameMode.CREATIVE
             }

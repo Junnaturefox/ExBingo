@@ -89,6 +89,92 @@ class GameCommands(
                     sendFeedback(text.string(StringKey.CommandResumeSuccess))
                 }
             }
+
+            literal("nextround") {
+                requires {
+                    // only meaningful once a round has finished
+                    hasState(GameState.POSTGAME) && canConfigureGame()
+                }
+                executes {
+                    val resetService = scope.get<me.jfenn.bingo.common.autorestart.ResetService>()
+                    val gameService = scope.get<GameService>()
+                    val serverTaskExecutor = scope.get<me.jfenn.bingo.platform.IExecutors.IServerTaskExecutor>()
+                    val playerManager = scope.get<me.jfenn.bingo.platform.IPlayerManager>()
+                    val bingoState = scope.get<BingoState>()
+
+                    // Starting a round with nobody online would leave it in STARTING_NEXT_ROUND
+                    // (GameService.start refuses), so refuse here instead.
+                    if (playerManager.getPlayers().isEmpty()) {
+                        sendMessage(text.string(StringKey.CommandStartNoPlayers))
+                        return@executes
+                    }
+
+                    // The reset clears the teams, so remember how many there were and re-shuffle
+                    // afterwards - otherwise every player would be treated as a spectator.
+                    val teamCount = bingoState.getRegisteredTeams().size.coerceAtLeast(1)
+
+                    serverTaskExecutor.execute {
+                        // Reset straight into STARTING_NEXT_ROUND (rather than PREGAME) so the
+                        // round can be started again without an intermediate lobby phase.
+                        resetService.resetGame(GameState.STARTING_NEXT_ROUND)
+
+                        if (bingoState.state != GameState.STARTING_NEXT_ROUND) {
+                            // the reset refused (e.g. it is not lobby mode) - do not claim success
+                            sendMessage(text.string(StringKey.CommandNextRoundFailed))
+                            return@execute
+                        }
+
+                        val teamService = scope.get<me.jfenn.bingo.common.team.TeamService>()
+                        if (bingoState.getRegisteredTeams().isEmpty()) {
+                            teamService.shuffleTeams(teamCount)
+                        }
+
+                        val warnings = mutableListOf<IText>()
+                        val started = gameService.start(
+                            warnings = warnings,
+                            ignoreWarnings = true,
+                            allowSpectators = true,
+                        )
+                        if (started) {
+                            sendFeedback(text.string(StringKey.CommandNextRoundStarting))
+                        }
+                        for ((index, warning) in warnings.withIndex()) {
+                            sendMessage(text.formatWarning(warning, index == 0))
+                        }
+                    }
+                }
+            }
+            literal("world") {
+                literal("seed") {
+                    requires { canConfigureGame() }
+
+                    executes {
+                        val state = scope.get<BingoState>()
+                        val seed = state.worldSeed
+                        sendFeedback(
+                            if (seed != null) text.string(StringKey.CommandWorldSeedCurrent, seed.toString())
+                            else text.string(StringKey.CommandWorldSeedRandom)
+                        )
+                    }
+
+                    long("seed") { seedArg ->
+                        executes {
+                            val state = scope.get<BingoState>()
+                            val seed = getArgument(seedArg)
+                            state.worldSeed = seed
+                            sendFeedback(text.string(StringKey.CommandWorldSeedSet, seed.toString()))
+                        }
+                    }
+
+                    literal("random") {
+                        executes {
+                            val state = scope.get<BingoState>()
+                            state.worldSeed = null
+                            sendFeedback(text.string(StringKey.CommandWorldSeedRandomSet))
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -97,5 +183,6 @@ class GameCommands(
         const val IGNORE_WARNINGS_COMMAND = "/bingo start ignore_warnings"
         const val END_COMMAND = "/bingo end"
         const val RESUME_COMMAND = "/bingo resume"
+        const val NEXT_ROUND_COMMAND = "/bingo nextround"
     }
 }

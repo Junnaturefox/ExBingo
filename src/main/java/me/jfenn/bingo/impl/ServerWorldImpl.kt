@@ -158,6 +158,13 @@ class ServerWorldFactory(
                 // this the server keeps ticking the closed worlds and the new entity managers never
                 // drain their loading inbox.
                 server.markWorldsDirty()
+
+                // Persist the new seed immediately: level.dat is otherwise only written on a
+                // graceful shutdown, so a crash before that would leave the old seed on disk while
+                // the region files were generated from the new one (terrain seams, wrong seed shown
+                // in the game-over screen).
+                server.accessor.getStorageAccess()
+                    .saveDataTag(server.registryAccess(), server.worldData)
             }
             tickKeepAlive()
 

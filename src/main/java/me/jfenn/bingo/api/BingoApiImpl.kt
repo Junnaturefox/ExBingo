@@ -29,7 +29,8 @@ internal class BingoApiImpl(
                 GameState.LOADING,
                 GameState.COUNTDOWN -> BingoGameStatus.STARTING
                 GameState.PLAYING -> BingoGameStatus.PLAYING
-                GameState.POSTGAME -> BingoGameStatus.POSTGAME
+                GameState.POSTGAME,
+                GameState.STARTING_NEXT_ROUND -> BingoGameStatus.POSTGAME
             },
             time = state.ingameDuration(),
             timeRemaining = state.remainingDuration()

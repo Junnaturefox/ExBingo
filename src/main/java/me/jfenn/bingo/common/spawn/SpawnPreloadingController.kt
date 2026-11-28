@@ -16,8 +16,8 @@ import me.jfenn.bingo.platform.IPlayerManager
 import me.jfenn.bingo.platform.event.IEventBus
 import org.slf4j.Logger
 import java.time.Instant
-import java.util.Collections
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
@@ -41,15 +41,12 @@ internal class SpawnPreloadingController(
 
     private var chunkFutureList: List<CompletableFuture<*>> = emptyList()
 
+    /** Hard upper bound on how long the spawn chunks may take before the round continues anyway. */
+    private val PRELOAD_TIMEOUT_SECONDS = 180L
+
     /** Total number of chunks being preloaded, used as the progress bar denominator. */
     private var chunkTotal: Int = 0
 
-    /**
-     * How many chunk generations may be in flight at once. Chunk generation is CPU-bound, so
-     * overlapping a couple of requests per core is enough to keep the worker pool busy without
-     * queuing the entire spawn area at once.
-     */
-    private val maxConcurrentChunkLoads = Runtime.getRuntime().availableProcessors().times(2)
 
     /**
      * Find the team spawnpoints (and their chests) and move on to [GameState.PRELOADING].
@@ -120,34 +117,45 @@ internal class SpawnPreloadingController(
 
             val chunkList = chunks.toList()
             chunkTotal = chunkList.size
-            // Requests are issued through a bounded number of sequential chains instead of all at
-            // once: every chunk is a full-status generation, and firing hundreds of them at the
-            // same time spikes both the chunk worker queue and the heap right when a round starts.
-            val futures = Collections.synchronizedList(mutableListOf<CompletableFuture<*>>())
-            chunkFutureList = futures
 
-            BoundedChunkLoader.schedule(
-                chunks = chunkList,
-                concurrency = maxConcurrentChunkLoads,
-                executor = serverTaskExecutor,
-                issued = futures,
-            ) { chunk ->
+            // NOTE: ServerChunkCache#getChunkFuture blocks on the server thread until the chunk has
+            // been generated (it calls mainThreadProcessor.managedBlock), so requests cannot
+            // overlap - issuing them from a bounded set of "worker chains" only adds scheduling
+            // overhead without any concurrency. The requests are therefore issued in order, and
+            // only the per-chunk timing is kept (the old code logged a running total, which made
+            // the debug output useless).
+            val futures = chunkList.map { chunk ->
                 val chunkStart = Instant.now()
-                world.getChunkAsync(chunk).thenApply {
-                    log.debug(
-                        "[SpawnPreloadingController] Finished chunk {} in {}",
-                        chunk,
-                        Instant.now() - chunkStart
-                    )
-                }
-            }.whenCompleteAsync({ _, _ ->
-                log.info("[SpawnPreloadingController] Finished preloading ${chunkList.size} chunks in ${Instant.now() - startedLoading}")
-                chunkFutureList = emptyList()
-                chunkTotal = 0
-                if (state.state == GameState.PRELOADING) {
-                    state.changeState(eventBus, GameState.LOADING)
-                }
-            }, serverTaskExecutor)
+                world.getChunkAsync(chunk)
+                    .whenComplete { _, _ ->
+                        log.debug(
+                            "[SpawnPreloadingController] Finished chunk {} in {}",
+                            chunk,
+                            Instant.now() - chunkStart
+                        )
+                    }
+            }
+
+            chunkFutureList = futures
+            CompletableFuture.allOf(*futures.toTypedArray())
+                // backstop: a chunk request that never completes must not leave the round stuck in
+                // PRELOADING (no command can leave that state)
+                .orTimeout(PRELOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .whenCompleteAsync({ _, error ->
+                    if (error != null) {
+                        log.warn(
+                            "[SpawnPreloadingController] Chunk preloading did not finish within {}s, continuing: {}",
+                            PRELOAD_TIMEOUT_SECONDS,
+                            error.message
+                        )
+                    }
+                    log.info("[SpawnPreloadingController] Finished preloading ${chunkList.size} chunks in ${Instant.now() - startedLoading}")
+                    chunkFutureList = emptyList()
+                    chunkTotal = 0
+                    if (state.state == GameState.PRELOADING) {
+                        state.changeState(eventBus, GameState.LOADING)
+                    }
+                }, serverTaskExecutor)
         }
 
         events.onGameTick {
