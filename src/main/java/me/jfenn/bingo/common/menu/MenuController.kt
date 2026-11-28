@@ -8,6 +8,7 @@ import me.jfenn.bingo.common.datapack.LobbyWorldService
 import me.jfenn.bingo.common.event.InteractionEntityEvents
 import me.jfenn.bingo.common.event.ScopedEvents
 import me.jfenn.bingo.common.lobbyWorld
+import me.jfenn.bingo.common.menu.tooltips.TooltipState
 import me.jfenn.bingo.common.scope.BingoComponent
 import me.jfenn.bingo.common.scope.ScopeManager
 import me.jfenn.bingo.common.state.BingoState
@@ -375,6 +376,8 @@ internal class MenuController(
     }
 
     private fun cleanupLobby(lobbyWorld: ServerLevel?) {
+        // tooltips are keyed by entity uuid; drop them together with the menu entities
+        koinScope.get<TooltipState>().clear()
         menu?.cleanup()
         menu = null
 

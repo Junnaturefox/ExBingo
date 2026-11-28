@@ -14,4 +14,13 @@ internal class TooltipState {
 
     operator fun get(uuid: UUID) = registeredTooltips[uuid]
 
+    /** Drop the tooltip of a despawned menu entity (the map would otherwise grow forever). */
+    fun remove(uuid: UUID) {
+        registeredTooltips.remove(uuid)
+    }
+
+    fun clear() {
+        registeredTooltips.clear()
+    }
+
 }
