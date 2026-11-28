@@ -15,6 +15,9 @@ object BingoApi {
     val game get() = current?.game
 
     @JvmStatic
+    val card get() = current?.card
+
+    @JvmStatic
     val teams get() = current?.teams
 
     @JvmStatic

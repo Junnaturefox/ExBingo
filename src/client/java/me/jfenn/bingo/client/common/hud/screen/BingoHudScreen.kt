@@ -20,6 +20,8 @@ import me.jfenn.bingo.common.game.GameOverPacket
 import me.jfenn.bingo.common.map.CardTileAction
 import me.jfenn.bingo.common.map.Color
 import me.jfenn.bingo.common.ready.SetReadyPacket
+import me.jfenn.bingo.common.ready.SetVotePacket
+import me.jfenn.bingo.common.ready.VoteType
 import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.common.team.BingoTeamKey
 import me.jfenn.bingo.common.text.TextProvider
@@ -183,6 +185,31 @@ internal class BingoHudScreen(
         }
     }
 
+    private val voteNextRoundButton = buttonFactory.createNinePatchButton(
+        sliceSize = 8,
+        textureSize = Vector2i(200, 20),
+        texture = "minecraft:bingo/button_game_generic",
+        focusedTexture = "minecraft:bingo/button_game_generic_focused"
+    ).also { button ->
+        button.message = text.string(StringKey.VoteNextRound)
+        button.onClick {
+            packets.readyVoteV1.send(SetVotePacket(VoteType.NEXT_ROUND))
+            init()
+        }
+    }
+
+    private val votePregameButton = buttonFactory.createNinePatchButton(
+        sliceSize = 8,
+        textureSize = Vector2i(200, 20),
+        texture = "minecraft:bingo/button_game_generic",
+        focusedTexture = "minecraft:bingo/button_game_generic_focused"
+    ).also { button ->
+        button.message = text.string(StringKey.VoteReturnToLobby)
+        button.onClick {
+            packets.readyVoteV1.send(SetVotePacket(VoteType.PREGAME))
+            init()
+        }
+    }
     private val nextRoundButton = buttonFactory.createNinePatchButton(
         sliceSize = 8,
         textureSize = Vector2i(200, 20),
@@ -311,6 +338,21 @@ internal class BingoHudScreen(
                 buttonY -= marginY + nextRoundButton.size.y
                 nextRoundButton.position = Vector2i(width - interpolatedSidebarWidth + marginX, buttonY)
             }
+
+            // post-game voting: the server sends the tallies while the ready countdown runs
+            val votes = state.ready?.votes.orEmpty()
+            if (state.ready?.canSendReady == true && votes.isNotEmpty()) {
+                val nextRoundVotes = votes[VoteType.NEXT_ROUND] ?: 0
+                val pregameVotes = votes[VoteType.PREGAME] ?: 0
+                voteNextRoundButton.message = text.string(StringKey.VoteNextRound).append(" ($nextRoundVotes)")
+                votePregameButton.message = text.string(StringKey.VoteReturnToLobby).append(" ($pregameVotes)")
+
+                for (button in arrayOf(voteNextRoundButton, votePregameButton)) {
+                    button.size = Vector2i(sidebarWidth - marginX * 2, 20)
+                    buttonY -= marginY + button.size.y
+                    button.position = Vector2i(width - interpolatedSidebarWidth + marginX, buttonY)
+                }
+            }
         }
 
         messagesWidget.x = width - interpolatedSidebarWidth + marginX
@@ -348,6 +390,11 @@ internal class BingoHudScreen(
 
             if (state.ready?.canSendReady == true) {
                 helper.addButton(nextRoundButton)
+            }
+
+            if (state.ready?.canSendReady == true && state.ready?.votes.orEmpty().isNotEmpty()) {
+                helper.addButton(votePregameButton)
+                helper.addButton(voteNextRoundButton)
             }
         }
 

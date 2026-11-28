@@ -407,7 +407,9 @@ internal class BingoHudController(
         val packet = clientPacket.packet
         val isStateChanged = state.ready?.canSendReady != packet.canSendReady ||
                 state.ready?.isReady != packet.isReady ||
-                state.ready?.isRunning != packet.isRunning
+                state.ready?.isRunning != packet.isRunning ||
+                state.ready?.votes != packet.votes ||
+                state.ready?.myVote != packet.myVote
 
         state.ready = packet
         state.gameState = packet.state
@@ -606,6 +608,7 @@ internal class BingoHudController(
         eventBus.register(packetEvents.readyUpdateV1, ::onReadyUpdate)
         eventBus.register(packetEvents.readyUpdateV2, ::onReadyUpdate)
         eventBus.register(packetEvents.readyUpdateV3, ::onReadyUpdate)
+        eventBus.register(packetEvents.readyUpdateV4, ::onReadyUpdate)
 
         eventBus.register(packetEvents.tooltipV1) {
             state.tooltip = it.packet

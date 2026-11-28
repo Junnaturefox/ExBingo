@@ -12,6 +12,7 @@ import me.jfenn.bingo.common.map.*
 import me.jfenn.bingo.common.menu.tooltips.TooltipPacket
 import me.jfenn.bingo.common.ready.ReadyUpdatePacket
 import me.jfenn.bingo.common.ready.SetReadyPacket
+import me.jfenn.bingo.common.ready.SetVotePacket
 import me.jfenn.bingo.common.scoring.*
 import me.jfenn.bingo.common.stats.packets.StatsCheckPacket
 import me.jfenn.bingo.common.stats.packets.StatsGamePacket
@@ -67,7 +68,9 @@ internal class ClientPacketEvents(
     val readyUpdateV1 = clientNetworking.registerS2C(ReadyUpdatePacket.V1)
     val readyUpdateV2 = clientNetworking.registerS2C(ReadyUpdatePacket.V2)
     val readyUpdateV3 = clientNetworking.registerS2C(ReadyUpdatePacket.V3)
+    val readyUpdateV4 = clientNetworking.registerS2C(ReadyUpdatePacket.V4)
     val readySetV1 = clientNetworking.registerC2S(SetReadyPacket.V1)
+    val readyVoteV1 = clientNetworking.registerC2S(SetVotePacket.V1)
 
     val sendPlayerSettingsV1 = clientNetworking.registerC2S(PlayerSettings.V1_C2S)
     val receivePlayerSettingsV1 = clientNetworking.registerS2C(PlayerSettings.V1_S2C)

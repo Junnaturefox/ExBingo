@@ -34,6 +34,7 @@ internal class ReadyController(
     private val packets: ServerPacketEvents,
     private val permissions: IPermissionsApi,
     private val readyService: ReadyService,
+    private val teamService: me.jfenn.bingo.common.team.TeamService,
     private val serverTaskExecutor: IExecutors.IServerTaskExecutor,
     events: ScopedEvents,
 ) {
@@ -71,9 +72,49 @@ internal class ReadyController(
         }
 
         if (isComplete && state.state == GameState.POSTGAME) {
-            log.info("[ReadyController] Reached the end of the POSTGAME timer - running reset.")
+            val vote = readyService.winningVote() ?: VoteType.PREGAME
+            // the reset clears the teams, so remember how many there were for the next round
+            val teamCount = state.getRegisteredTeams().size.coerceAtLeast(1)
+
+            // clear the timer synchronously: update() runs from several entry points, and without
+            // this the whole reset/start block below could be dispatched more than once
+            readyService.reset()
+
+            log.info("[ReadyController] Reached the end of the POSTGAME timer - running {} (vote).", vote)
             serverTaskExecutor.execute {
-                resetService.resetGame()
+                when (vote) {
+                    VoteType.NEXT_ROUND -> {
+                        resetService.resetGame(GameState.STARTING_NEXT_ROUND)
+                        if (state.state != GameState.STARTING_NEXT_ROUND) {
+                            log.warn("[ReadyController] The reset was refused; leaving the state as-is.")
+                            return@execute
+                        }
+
+                        if (state.getRegisteredTeams().isEmpty() && playerManager.getPlayers().isNotEmpty()) {
+                            teamService.shuffleTeams(teamCount)
+                        }
+
+                        val warnings = mutableListOf<IText>()
+                        val started = gameService.start(
+                            warnings = warnings,
+                            ignoreWarnings = true,
+                            allowSpectators = true,
+                        )
+                        if (started) {
+                            for ((index, warning) in warnings.withIndex()) {
+                                playerManager.getPlayers().forEach { player ->
+                                    player.sendMessage(text.formatWarning(warning, index == 0))
+                                }
+                            }
+                        } else {
+                            // GameService.start refuses when nobody is online / options are invalid;
+                            // fall back to the lobby so the server is not left in STARTING_NEXT_ROUND
+                            log.warn("[ReadyController] Failed to start the next round; falling back to the lobby.")
+                            resetService.resetGame()
+                        }
+                    }
+                    VoteType.PREGAME -> resetService.resetGame()
+                }
             }
         }
 
@@ -108,10 +149,13 @@ internal class ReadyController(
                 isReady = isPlayerReady,
                 title = title,
                 subtitle = subtitle,
-                canSendReady = isVotingEnabled && permissions.hasPermission(player, Permission.COMMAND_READY)
+                canSendReady = isVotingEnabled && permissions.hasPermission(player, Permission.COMMAND_READY),
+                votes = if (state.state == GameState.POSTGAME && readyState.isRunning) readyService.voteCounts() else emptyMap(),
+                myVote = if (state.state == GameState.POSTGAME) readyService.myVote(player) else null,
             )
 
             when {
+                packets.readyUpdateV4.send(player, packet) -> {}
                 packets.readyUpdateV3.send(player, packet) -> {}
                 packets.readyUpdateV2.send(player, packet) -> {}
                 packets.readyUpdateV1.send(player, packet) -> {}
@@ -197,6 +241,12 @@ internal class ReadyController(
             if (readyState.isReady(it.player.uuid)) {
                 playerManager.updatePlayerListName(it.player)
             }
+        }
+
+        events.onPacket(packets.readyVoteV1) {
+            val result = readyService.vote(it.player, it.packet.option)
+            it.player.sendMessage(result.message)
+            update()
         }
 
         events.onPacket(packets.readySetV1) {

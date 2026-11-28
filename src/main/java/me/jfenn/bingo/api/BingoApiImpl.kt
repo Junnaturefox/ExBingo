@@ -7,6 +7,7 @@ import me.jfenn.bingo.api.event.GameStartedEvent
 import me.jfenn.bingo.api.event.TeamChangedEvent
 import me.jfenn.bingo.common.event.ScopedEvents
 import me.jfenn.bingo.common.state.BingoState
+import me.jfenn.bingo.common.options.BingoGoal
 import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.common.stats.StatsService
 import net.minecraft.server.MinecraftServer
@@ -36,6 +37,40 @@ internal class BingoApiImpl(
             timeRemaining = state.remainingDuration()
         )
 
+    override val card: IBingoCard?
+        get() {
+            val activeCard = state.cards.firstOrNull() ?: return null
+            val cardOptions = activeCard.options
+            return BingoCardImpl(
+                id = activeCard.id,
+                seed = activeCard.seed,
+                entries = activeCard.entries.mapIndexed { index, entry ->
+                    BingoCardEntryImpl(
+                        objectiveId = entry.objectiveId,
+                        x = index % 5,
+                        y = index / 5,
+                        tier = entry.tier?.name,
+                        source = entry.source,
+                        tileName = entry.tileName,
+                    )
+                },
+                options = BingoCardOptionsImpl(
+                    goalType = when (cardOptions.goal) {
+                        is BingoGoal.Items -> "items"
+                        is BingoGoal.Lines -> "lines"
+                    },
+                    goalCount = when (val goal = cardOptions.goal) {
+                        is BingoGoal.Items -> goal.items
+                        is BingoGoal.Lines -> goal.lines
+                    },
+                    distribution = cardOptions.itemDistribution.toList(),
+                    isLockoutMode = cardOptions.isLockoutMode,
+                    isInventoryMode = cardOptions.isInventoryMode,
+                    isHiddenItemsMode = cardOptions.isHiddenItemsMode,
+                    isConsumeItemsMode = cardOptions.isConsumeItemsMode,
+                ),
+            )
+        }
     override val teams: IBingoTeams get() = this
 
     override fun getPlayerStats(id: UUID): IBingoPlayerStats {

@@ -801,6 +801,8 @@
   "bingo.world.return_to_lobby": "返回大厅",
   "bingo.world.keep_playing": "继续游玩",
     "bingo.world.next_round": "下一轮",
+    "bingo.vote.next_round": "下一轮",
+    "bingo.vote.return_to_lobby": "返回大厅",
     "bingo.command.next_round.starting": "正在开始下一轮游戏...",
     "bingo.command.next_round.failed": "无法开始下一轮：重置被拒绝（是否启用了大厅模式？）。",
   "bingo.world.preparing": "生成新的Bingo世界中……",

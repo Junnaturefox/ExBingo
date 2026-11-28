@@ -10,6 +10,7 @@ class ReadyTimerState {
 
     private var totalPlayers = listOf<UUID>()
     private val readyPlayers = mutableSetOf<UUID>()
+    private val votes = mutableMapOf<UUID, VoteType>()
     private var startedAt: Instant? = null
     private var totalDuration: Duration? = null
 
@@ -29,6 +30,25 @@ class ReadyTimerState {
     val playerCount get() = totalPlayers.size
 
     fun isReady(player: UUID): Boolean = player in readyPlayers
+
+    fun setVote(player: UUID, vote: VoteType) {
+        votes[player] = vote
+    }
+
+    fun vote(player: UUID): VoteType? = votes[player]
+
+    fun voteCounts(): Map<VoteType, Int> = VoteType.entries.associateWith { type ->
+        votes.count { (uuid, value) -> value == type && uuid in totalPlayers }
+    }
+
+    /** The most-voted option (plurality), or null when nobody voted or the top count is tied. */
+    fun winningVote(): VoteType? = voteCounts()
+        .entries
+        .maxByOrNull { it.value }
+        ?.takeIf { (_, count) ->
+            count > 0 && voteCounts().values.count { it == count } == 1
+        }
+        ?.key
 
     fun setReady(player: UUID, ready: Boolean) {
         if (ready) {
@@ -65,6 +85,7 @@ class ReadyTimerState {
 
     fun reset() {
         readyPlayers.clear()
+        votes.clear()
         startedAt = null
         totalDuration = null
         isCancelled = false

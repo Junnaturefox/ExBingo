@@ -19,6 +19,10 @@ data class ReadyUpdatePacket(
     val title: IText?,
     val subtitle: IText?,
     val canSendReady: Boolean = false,
+    /** Vote tallies for the post-game action; empty when there is no vote running. */
+    val votes: Map<VoteType, Int> = emptyMap(),
+    /** This player's own vote, if any. */
+    val myVote: VoteType? = null,
 ) {
     object V1 : PacketConverter<ReadyUpdatePacket> {
         override val id: ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID_BINGO, "ready_timer_update")
@@ -119,6 +123,52 @@ data class ReadyUpdatePacket(
             dest.writeNullable(source.title, dest::writeText)
             dest.writeNullable(source.subtitle, dest::writeText)
             dest.writeBoolean(source.canSendReady)
+        }
+    }
+
+    object V4 : PacketConverter<ReadyUpdatePacket> {
+        override val id: ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID_BINGO, "ready_timer_update_v4")
+
+        override fun fromPacketBuf(buf: IPacketBuf): ReadyUpdatePacket {
+            val base = V3.fromPacketBuf(buf)
+            val votes = buf.readList {
+                val type = try {
+                    VoteType.valueOf(buf.readString())
+                } catch (e: IllegalArgumentException) {
+                    VoteType.PREGAME
+                }
+                type to buf.readInt()
+            }.toMap()
+            val myVote = buf.readNullable {
+                try {
+                    VoteType.valueOf(buf.readString())
+                } catch (e: IllegalArgumentException) {
+                    VoteType.PREGAME
+                }
+            }
+            return ReadyUpdatePacket(
+                isRunning = base.isRunning,
+                isReady = base.isReady,
+                state = base.state,
+                remainingDuration = base.remainingDuration,
+                totalDuration = base.totalDuration,
+                readyPlayers = base.readyPlayers,
+                totalPlayers = base.totalPlayers,
+                title = base.title,
+                subtitle = base.subtitle,
+                canSendReady = base.canSendReady,
+                votes = votes,
+                myVote = myVote,
+            )
+        }
+
+        override fun toPacketBuf(source: ReadyUpdatePacket, dest: IPacketBuf) {
+            V3.toPacketBuf(source, dest)
+            dest.writeList(source.votes.entries) { (type, count) ->
+                dest.writeString(type.name)
+                dest.writeInt(count)
+            }
+            dest.writeNullable(source.myVote) { dest.writeString(it.name) }
         }
     }
 }

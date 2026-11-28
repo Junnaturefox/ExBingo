@@ -103,6 +103,25 @@ internal class ReadyService(
         )
     }
 
+    fun vote(player: IPlayerHandle, vote: VoteType): ReadyResult {
+        if (!canUseReady(player)) {
+            return ReadyResult.Failed(text.string(StringKey.CommandReadyNotOnATeam, "${JoinCommand.JOIN_COMMAND} ${JoinCommand.SPECTATORS}"))
+        }
+
+        if (!readyTimerState.isRunning) {
+            return ReadyResult.Failed(text.string(StringKey.CommandReadyNotRunning))
+        }
+
+        readyTimerState.setVote(player.uuid, vote)
+        return ReadyResult.ChangedTo(ready = true, message = text.string(vote.label))
+    }
+
+    fun voteCounts(): Map<VoteType, Int> = readyTimerState.voteCounts()
+
+    fun myVote(player: IPlayerHandle): VoteType? = readyTimerState.vote(player.uuid)
+
+    fun winningVote(): VoteType? = readyTimerState.winningVote()
+
     fun toggleReady(player: IPlayerHandle): ReadyResult {
         val isReady = !readyTimerState.isReady(player.uuid)
         return setReady(player, isReady)

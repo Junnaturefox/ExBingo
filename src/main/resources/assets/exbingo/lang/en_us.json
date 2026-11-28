@@ -802,6 +802,8 @@
   "bingo.world.return_to_lobby": "Return to Lobby",
   "bingo.world.keep_playing": "Keep Playing",
     "bingo.world.next_round": "Next Round",
+    "bingo.vote.next_round": "Next Round",
+    "bingo.vote.return_to_lobby": "Return to Lobby",
     "bingo.command.next_round.starting": "Starting the next round...",
     "bingo.command.next_round.failed": "The next round could not be started - the reset was refused (is lobby mode enabled?).",
   "bingo.world.preparing": "Preparing a new Bingo world...",
