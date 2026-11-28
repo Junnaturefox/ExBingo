@@ -28,7 +28,9 @@ internal object ScoreService {
 
         // if the win condition is "ReplaceGoals", then any impossible goals could get replaced by another team
         // (and since the score is accumulated, this probably isn't a soft-lock anyway)
-        // TODO: there probably _are_ stalemate conditions in ReplaceGoals, but they'll be much more specific
+        // NOTE: ReplaceGoals is deliberately exempt from stalemate detection. Impossible goals get
+        // replaced, and the score accumulates, so the classic soft-lock does not apply; any real
+        // stalemate would be much more specific than this check.
         if (state.options.winCondition is BingoWinCondition.ReplaceGoals)
             return null
 
@@ -49,7 +51,11 @@ internal object ScoreService {
 
         val leadingTeamOrTie = teams.maxWithOrNull { a, b -> comparator.compare(a.score, b.score) }
 
-        // TODO: isPossible only checks the top-level objective at the moment
+        // NOTE: isPossible only inspects the top-level objective. For nested objectives (one_of /
+        // max-stat / permanent inverse) a team may be reported as able to win when its remaining
+        // children are all unreachable; the consequence is a missed early stalemate, not a wrong
+        // result. A precise version needs per-objective "can still be achieved / can still be lost"
+        // flags maintained by the objective managers each tick.
         // - for max stat values, permanent one_of objectives, etc. this needs data from the objective manager
         // - could be stored in objective.canAchieveTeams on each tick
         // - also needs objective.canLose

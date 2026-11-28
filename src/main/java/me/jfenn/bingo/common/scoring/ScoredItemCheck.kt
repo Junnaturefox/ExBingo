@@ -159,7 +159,10 @@ internal class ScoredItemCheck(
                         }
                 }.filterNot { entry ->
                     // Don't replace free spaces or inverse objectives
-                    // TODO: these could be nested in one_of/opponent which would create odd behavior
+                    // NOTE: free-space/inverse objectives nested inside one_of/opponent are not
+                    // detected here, so such a card could be replaced in an odd way. Nothing in the
+                    // shipped boards nests them; a full fix needs the objective manager to expose
+                    // the resolved child objectives.
                     val objective = card.objectives[entry.objectiveId]
                     objective is BingoObjective.FreeSpace || objective is BingoObjective.InverseEntry
                 }

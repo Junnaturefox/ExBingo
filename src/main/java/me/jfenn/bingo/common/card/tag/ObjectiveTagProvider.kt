@@ -13,7 +13,8 @@ class ObjectiveTagProvider(
     override fun listTags(): Map<String, TagData> {
         val types = objectiveManager.list()
             .mapNotNull { objectiveManager.find(it, CardGeneratorState(Random.Default)) }
-            // this is such a hack
+            // the objective type comes from the @SerialName annotation on the data class; there is no
+            // explicit type field in the model, so reflection on the annotation is the only source.
             .groupBy { it::class.findAnnotation<SerialName>()?.value }
             .mapNotNull { (key, value) ->
                 key?.let {

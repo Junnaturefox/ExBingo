@@ -31,7 +31,9 @@ internal class WriteStatsService(
         teamInfo: GameTeamInfo,
         playerInfo: GamePlayerInfo,
     ) {
-        // TODO: if player.uuid is also the server host (in singleplayer/lan), there's no need to send this packet
+        // NOTE: in singleplayer the host also receives this packet even though it already has the
+        // data. It is one small packet per finished game, and skipping it would need a reliable
+        // "is this the host" check that behaves the same in singleplayer and LAN hosting.
         val player = server.playerList.getPlayer(playerInfo.minecraftId) ?: return
 
         packets.statsGameV1S2C.send(player, StatsGamePacket(

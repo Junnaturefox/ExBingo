@@ -612,7 +612,10 @@ internal class BingoHudController(
             scaledWindowWidth = it.drawService.window.scaledWindowWidth
             scaledWindowHeight = it.drawService.window.scaledWindowHeight
 
-            // TODO: move to resize event?
+            // NOTE: kept per frame instead of a resize listener on purpose - cards can arrive at
+            // any time (relog, reroll, card stack change), and a resize event would miss those,
+            // leaving the new card unsized until the player resizes the window. The call itself is
+            // a couple of arithmetic operations per card.
             state.cards.values.forEach { card ->
                 clientCardManager.resizeCard(card)
                 clientCardManager.resizeCard(card.guiCard, 1f)
