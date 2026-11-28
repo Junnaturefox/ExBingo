@@ -8,6 +8,10 @@ import me.jfenn.bingo.common.datapack.LobbyWorldService
 import me.jfenn.bingo.common.event.InteractionEntityEvents
 import me.jfenn.bingo.common.event.ScopedEvents
 import me.jfenn.bingo.common.lobbyWorld
+import me.jfenn.bingo.common.menu.lifecycle.isLobbyEntityOf
+import me.jfenn.bingo.common.menu.lifecycle.isStaleLobbyEntity
+import me.jfenn.bingo.common.menu.lifecycle.lobbyTags
+import me.jfenn.bingo.common.menu.lifecycle.newLobbyInstanceTag
 import me.jfenn.bingo.common.menu.tooltips.TooltipState
 import me.jfenn.bingo.common.scope.BingoComponent
 import me.jfenn.bingo.common.scope.ScopeManager
@@ -94,7 +98,7 @@ internal class MenuController(
 
     // Unique tag for entities belonging to the current lobby instance. Regenerated each time
     // the lobby is spawned so stale runtime menu/team entities can be discarded safely.
-    private var instanceTag = "bingo-${UUID.randomUUID()}"
+    private var instanceTag = newLobbyInstanceTag()
 
     // Ticks remaining for the post-spawn stale-entity sweep. In safe-reset mode the previous
     // round's menu/team entities are autosaved into the lobby world's entities/ data and reload
@@ -195,7 +199,7 @@ internal class MenuController(
         var stale = 0
         lobbyWorld.allEntities.forEach { entity ->
             if (entity is Player) return@forEach
-            val bingoTags = entity.tags.filter { it.startsWith("bingo-") }
+            val bingoTags = entity.tags.lobbyTags()
             if (bingoTags.isEmpty()) return@forEach
             if (instanceTag in bingoTags) current++ else stale++
         }
@@ -313,7 +317,7 @@ internal class MenuController(
 
         // Regenerate our instance tag so any menu/team-picker entities that survived from a
         // previous lobby instance now carry an old tag and can be discarded.
-        instanceTag = "bingo-${UUID.randomUUID()}"
+        instanceTag = newLobbyInstanceTag()
 
         if (menuPos != null) {
             log.info("[MenuController] Spawning lobby menu at ${menuPos.getTranslation(Vector3d())}")
@@ -362,9 +366,8 @@ internal class MenuController(
         // entity while iterating it can throw ConcurrentModificationException
         for (entity in lobbyWorld.allEntities.toList()) {
             if (entity is Player) continue
-            val bingoTags = entity.tags.filter { it.startsWith("bingo-") }
-            if (bingoTags.isEmpty() || instanceTag in bingoTags) continue
-            log.info("[MenuController] Sweeping stale lobby entity {} (tags={})", entity.uuid, bingoTags)
+            if (!entity.tags.isStaleLobbyEntity(instanceTag)) continue
+            log.info("[MenuController] Sweeping stale lobby entity {} (tags={})", entity.uuid, entity.tags.lobbyTags())
             discardLobbyEntity(entity)
         }
     }
@@ -680,8 +683,7 @@ internal class MenuController(
             .filter { isLobbyEntityType(it.type) }
             .filter { entity -> positions.any { it.isNear(entity.pos) } }
             .filter {
-                val bingoTags = it.commandTags.filter { tag -> tag.startsWith("bingo-") }
-                bingoTags.isEmpty() || instanceTag !in bingoTags
+                it.commandTags.isStaleLobbyEntity(instanceTag)
             }
             .forEach { entity ->
                 interactionEntityEvents.removeInteract(entity.uuid)
