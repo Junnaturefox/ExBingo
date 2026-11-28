@@ -3,6 +3,7 @@ package me.jfenn.bingo.common.scope
 import me.jfenn.bingo.api.BingoApi
 import me.jfenn.bingo.api.BingoEvents
 import me.jfenn.bingo.api.IBingoApi
+import me.jfenn.bingo.common.mixinstate.ServerMixinState
 import me.jfenn.bingo.common.MOD_ID
 import me.jfenn.bingo.common.card.CardService
 import me.jfenn.bingo.common.commonInit
@@ -109,6 +110,9 @@ class ScopeManager(
             eventBus.emit(ScopeStopped, ScopeStopped(scope))
             BingoEvents.CLOSE.invoke(null)
             scope.close()
+            // drop the per-server mixin state (movement/chunk signals, save bridge, ...) with the
+            // scope, so nothing survives into the next server instance
+            ServerMixinState.clear(server)
         }
     }
 }

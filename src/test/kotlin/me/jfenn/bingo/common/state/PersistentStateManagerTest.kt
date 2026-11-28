@@ -1,5 +1,11 @@
 package me.jfenn.bingo.common.state
 
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
+import java.util.zip.GZIPOutputStream
 import me.jfenn.bingo.common.event.EventBus
 import me.jfenn.bingo.common.event.model.StateChangedEvent
 import me.jfenn.bingo.common.options.BingoOptions
@@ -101,6 +107,36 @@ class PersistentStateManagerTest {
         assertEquals(Duration.ofMinutes(10), restoredState.options.timeLimit)
     }
 
+    @Test
+    fun `legacy state file without a format version is still read`() {
+        val legacy = BingoState(options = BingoOptions(cards = emptyList()))
+        legacy.state = GameState.PLAYING
+        legacy.options.timeLimit = Duration.ofMinutes(15)
+        writeLegacyState(legacy)
+
+        val manager = createManager(EventBus(LoggerFactory.getLogger("PersistentStateManagerTest")))
+        val type = registerBingoState(manager)
+        val restored = manager.getFromWorld(type)
+
+        assertEquals(GameState.PLAYING, restored.state)
+        assertEquals(Duration.ofMinutes(15), restored.options.timeLimit)
+    }
+
+    @Test
+    fun `state written by a newer format version is not parsed`() {
+        val future = BingoState(options = BingoOptions(cards = emptyList()))
+        future.state = GameState.PLAYING
+        writeFutureFormatState(future, formatVersion = 999)
+
+        val manager = createManager(EventBus(LoggerFactory.getLogger("PersistentStateManagerTest")))
+        val type = registerBingoState(manager)
+        val restored = manager.getFromWorld(type)
+
+        // a downgrade must keep the defaults instead of mangling the file with older rules
+        val defaultState = BingoState(options = BingoOptions(cards = emptyList())).state
+        assertEquals(defaultState, restored.state)
+    }
+
     private fun createManager(eventBus: EventBus): PersistentStateManager {
         return PersistentStateManager(
             logger = LoggerFactory.getLogger("PersistentStateManagerTest"),
@@ -118,12 +154,37 @@ class PersistentStateManagerTest {
         return tempDir.resolve("data").resolve("exbingo.json.gz")
     }
 
-    private fun readSavedState(): BingoState {
+    private fun readSavedText(): String {
         val path = savedStatePath()
         assertTrue(Files.exists(path), "persistent state file should exist")
         return Files.newInputStream(path).buffered()
             .let { GZIPInputStream(it) }
-            .use { json.decodeFromString(BingoState.serializer(), it.readBytes().decodeToString()) }
+            .use { it.readBytes().decodeToString() }
+    }
+
+    private fun readSavedState(): BingoState {
+        val element = json.parseToJsonElement(readSavedText())
+        // the saved file is an envelope: { "formatVersion": N, "state": { ... } }
+        val stateElement = element.jsonObject["state"] ?: element
+        return json.decodeFromJsonElement(BingoState.serializer(), stateElement)
+    }
+
+    private fun writeLegacyState(state: BingoState) {
+        val path = savedStatePath()
+        Files.createDirectories(path.parent)
+        val bytes = json.encodeToString(BingoState.serializer(), state).encodeToByteArray()
+        Files.newOutputStream(path).buffered().let { GZIPOutputStream(it) }.use { it.write(bytes) }
+    }
+
+    private fun writeFutureFormatState(state: BingoState, formatVersion: Int) {
+        val path = savedStatePath()
+        Files.createDirectories(path.parent)
+        val envelope = buildJsonObject {
+            put("formatVersion", JsonPrimitive(formatVersion))
+            put("state", json.encodeToJsonElement(BingoState.serializer(), state))
+        }
+        val bytes = json.encodeToString(JsonElement.serializer(), envelope).encodeToByteArray()
+        Files.newOutputStream(path).buffered().let { GZIPOutputStream(it) }.use { it.write(bytes) }
     }
 
     private object TestJsonSerializers : IJsonSerializers {

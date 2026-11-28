@@ -3,7 +3,13 @@ package me.jfenn.bingo.common.state
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.encodeToStream
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.serializer
 import me.jfenn.bingo.common.event.model.StateChangedEvent
 import me.jfenn.bingo.common.utils.decodeFromUtf8Stream
@@ -25,6 +31,11 @@ import java.nio.file.StandardOpenOption
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 import kotlin.reflect.KType
+
+/** On-disk format version; bump when the saved shape changes. Files without it are legacy (v1). */
+private const val STATE_FORMAT_VERSION = 2
+private const val STATE_FORMAT_VERSION_KEY = "formatVersion"
+private const val STATE_KEY = "state"
 
 @OptIn(ExperimentalSerializationApi::class)
 class PersistentStateManager(
@@ -131,21 +142,45 @@ class PersistentStateManager(
     ) : IPersistentStateType<T>
 
     private fun <T : Any> readFromPath(path: Path, serializer: KSerializer<T>): T {
-        return Files.newInputStream(path)
+        val text = Files.newInputStream(path)
             .buffered()
             .let { GZIPInputStream(it) }
-            .use {
-                json.decodeFromUtf8Stream(serializer, it)
+            .use { it.readBytes().decodeToString() }
+
+        val element = json.parseToJsonElement(text)
+        val stateElement = if (element is JsonObject && element.containsKey(STATE_FORMAT_VERSION_KEY)) {
+            val version = element[STATE_FORMAT_VERSION_KEY]?.jsonPrimitive?.intOrNull
+                ?: throw IllegalStateException("Persistent state '${path.fileName}' has an unreadable '$STATE_FORMAT_VERSION_KEY'")
+            if (version > STATE_FORMAT_VERSION) {
+                // Never parse a newer format with older rules - that would silently mangle the
+                // player's round. The caller falls back to the backup, then to the defaults.
+                throw IllegalStateException(
+                    "Persistent state '${path.fileName}' was written by a newer version " +
+                        "(format $version, supported up to $STATE_FORMAT_VERSION)"
+                )
             }
+            element[STATE_KEY]
+                ?: throw IllegalStateException("Persistent state '${path.fileName}' is missing '$STATE_KEY'")
+        } else {
+            // Files written before the envelope existed are a bare serialized value; they are still
+            // valid and get rewritten in the current format on the next save.
+            element
+        }
+
+        return json.decodeFromJsonElement(serializer, stateElement)
     }
 
     private fun <T : Any> writeToPath(path: Path, serializer: KSerializer<T>, value: T) {
+        val envelope = buildJsonObject {
+            put(STATE_FORMAT_VERSION_KEY, JsonPrimitive(STATE_FORMAT_VERSION))
+            put(STATE_KEY, json.encodeToJsonElement(serializer, value))
+        }
+        val bytes = json.encodeToString(JsonElement.serializer(), envelope).encodeToByteArray()
+
         Files.newOutputStream(path, *writeOptions)
             .buffered()
             .let { GZIPOutputStream(it) }
-            .use {
-                json.encodeToStream(serializer, value, it)
-            }
+            .use { it.write(bytes) }
     }
 
     private fun backupPath(path: Path): Path {
@@ -192,6 +227,20 @@ class PersistentStateManager(
     }
 
     init {
+        // Bind the vanilla save hook to this scope's event bus, so autosave / /save-all writes the
+        // bingo state out with the world. Without this the hook is inert and progress is only
+        // flushed on state changes and shutdown.
+        //
+        // The server is resolved defensively: unit tests construct this class with a fake world
+        // factory whose `world` is not a real ServerLevel. In a running server the lookup always
+        // succeeds (the scope only exists while the server does).
+        val hookServer = runCatching { serverWorldFactory.overworld.world.server }.getOrNull()
+        if (hookServer != null) {
+            ServerEventMixinHandler.register(hookServer, eventBus)
+        } else {
+            logger.debug("[PersistentStateManager] No server available; the save hook stays unbound.")
+        }
+
         eventBus.register(ServerEvent.Saved) {
             writeAll()
         }
@@ -201,6 +250,7 @@ class PersistentStateManager(
         }
 
         eventBus.register(ScopeStopped) {
+            if (hookServer != null) ServerEventMixinHandler.unregister(hookServer)
             writeAll()
         }
 
