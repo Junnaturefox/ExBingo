@@ -174,6 +174,9 @@ open class DisplayEntityImpl(
     override val entity: Display
 ) : IDisplayEntity, EntityImpl(entity) {
     override var transformation: Matrix4f
+        // NB: Display's transformation accessors are not public in 1.21.1 (the setter is private),
+        // so this stays backed by the entity NBT. Reading it back is not used anywhere; adding a
+        // mixin accessor would be required to make the getter return the live value.
         get() = Matrix4f()
         set(value) {
             patchNbt { put("transformation", value.toNbt()) }

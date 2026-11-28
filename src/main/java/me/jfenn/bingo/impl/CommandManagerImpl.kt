@@ -174,8 +174,12 @@ open class ExecutionSourceImpl(
     source: CommandSourceStack,
 ) : IExecutionSource {
     override val server: MinecraftServer = source.server
-    override val scope: Scope = BingoKoin.getScope(source.server)
-        ?: throw IllegalArgumentException("No scope registered for this server!")
+    // resolved lazily: constructing an execution source (e.g. for tab completion before the
+    // server scope exists, or after it stopped) used to throw for every `requires` evaluation
+    private val scopeOrNull: Scope? by lazy { BingoKoin.getScope(source.server) }
+
+    override val scope: Scope
+        get() = scopeOrNull ?: throw IllegalStateException("No bingo scope registered for this server!")
     override val player: IPlayerHandle? = source.player?.let { PlayerHandle(it) }
     override val isConsole: Boolean = source.entity == null
     override fun error(text: IText): Nothing {

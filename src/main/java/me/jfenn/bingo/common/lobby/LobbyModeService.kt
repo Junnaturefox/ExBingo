@@ -71,10 +71,11 @@ internal class LobbyModeService(
             })
             server.halt(false)
         } else {
+            // do not throw here: the caller consumes this sequence inside a command handler, and
+            // the exception surfaced as a red stack-trace message next to the actual explanation
             yield(text.string(StringKey.CommandLobbyMustRun, LOBBY_COMMAND).formatted(
                 ChatFormatting.RED
             ))
-            throw IllegalArgumentException("Has not read the warnings")
         }
     }
 }

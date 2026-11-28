@@ -137,7 +137,11 @@ class ItemStackFactory(
         // implements this interface once the mixin has been applied at runtime.
         val access = (stack as Any) as? ItemStackMixinAccess
         if (access != null) {
-            access.exbingoGetItemStackImpl()?.let { return it }
+            // The cache is only reusable by the factory that created the wrapper: the root single
+            // is built with plain JsonOps while the scoped one carries the server's RegistryAccess,
+            // so a wrapper from the other factory would encode components without registry context.
+            val cached = access.exbingoGetItemStackImpl()
+            if (cached is ItemStackImpl && cached.factory === this) return cached
             return ItemStackImpl(stack).also { access.exbingoSetItemStackImpl(it) }
         }
 
@@ -155,6 +159,9 @@ class ItemStackFactory(
     open inner class ItemStackImpl(
         override val stack: ItemStack,
     ) : IItemStack {
+        /** The factory this wrapper was created by (used to validate the per-stack cache). */
+        val factory get() = this@ItemStackFactory
+
         override val item: Item
             get() = stack.item
 

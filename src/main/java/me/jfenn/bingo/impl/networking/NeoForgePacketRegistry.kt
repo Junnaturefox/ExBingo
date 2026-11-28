@@ -60,7 +60,7 @@ object NeoForgePacketRegistry {
 
     fun <T> registerS2C(converter: PacketConverter<T>, itemStackFactory: IItemStackFactory): CustomPacketPayload.Type<BingoPayload<T>> {
         val type = typeOf<T>(converter.id)
-        s2c.computeIfAbsent(converter.id) {
+        s2c.getOrPut(converter.id) {
             PacketRegistration(
                 type = type,
                 converter = converter,
@@ -68,13 +68,13 @@ object NeoForgePacketRegistry {
                 serverHandler = null,
                 clientHandler = null,
             )
-        }
+        }.also { it.itemStackFactory = itemStackFactory }
         return type
     }
 
     fun <T> registerClientC2S(converter: PacketConverter<T>, itemStackFactory: IItemStackFactory): CustomPacketPayload.Type<BingoPayload<T>> {
         val type = typeOf<T>(converter.id)
-        c2s.computeIfAbsent(converter.id) {
+        c2s.getOrPut(converter.id) {
             PacketRegistration(
                 type = type,
                 converter = converter,
@@ -82,7 +82,7 @@ object NeoForgePacketRegistry {
                 serverHandler = null,
                 clientHandler = null,
             )
-        }
+        }.also { it.itemStackFactory = itemStackFactory }
         return type
     }
 
@@ -161,7 +161,9 @@ object NeoForgePacketRegistry {
     private data class PacketRegistration<T>(
         val type: CustomPacketPayload.Type<BingoPayload<T>>,
         val converter: PacketConverter<T>,
-        val itemStackFactory: IItemStackFactory,
+        // var: a second server session in the same JVM re-registers the payloads with a new
+        // factory, and the codec below closes over this instance
+        var itemStackFactory: IItemStackFactory,
         val serverHandler: ((BingoPayload<T>, IPayloadContext) -> Unit)?,
         val clientHandler: ((BingoPayload<T>, IPayloadContext) -> Unit)?,
     ) {
